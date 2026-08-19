@@ -1,0 +1,301 @@
+// Fase 0, 1, 2, 3, 4, 5, 6, 7 y 8 del plan de implementación
+// Referencia: sección 7 (Modelo de base de datos) del documento de requerimientos
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoUsuario {
+  interno
+  externo
+}
+
+enum Rol {
+  jugador
+  arbitro
+  administrador
+}
+
+model Usuario {
+  id                String   @id @default(uuid())
+  nombre            String
+  correo            String?  @unique
+  passwordHash      String?  @map("password_hash")
+  tipo              TipoUsuario
+  procedencia       String?
+  programaFacultad  String?  @map("programa_facultad")
+  eloOficial        Int      @default(1000) @map("elo_oficial")
+  eloNoOficial      Int      @default(1000) @map("elo_no_oficial")
+  activo            Boolean  @default(true)
+  fechaRegistro     DateTime @default(now()) @map("fecha_registro")
+  consentimientoDatos   Boolean   @default(false) @map("consentimiento_datos")
+  fechaConsentimiento   DateTime? @map("fecha_consentimiento")
+
+  roles UsuarioRol[]
+
+  partidosComoJugadorA Partido[] @relation("PartidoJugadorA")
+  partidosComoJugadorB Partido[] @relation("PartidoJugadorB")
+  partidosGanados      Partido[] @relation("PartidoGanador")
+  partidosRegistrados  Partido[] @relation("PartidoRegistrador")
+  partidosValidados    Partido[] @relation("PartidoValidador")
+  historialRanking     HistorialRanking[]
+
+  torneosCreados Torneo[]      @relation("TorneoCreador")
+  inscripciones  Inscripcion[]
+  gruposAsignados GrupoJugador[]
+  auditorias      Auditoria[]
+  notificaciones  Notificacion[]
+
+  @@map("usuarios")
+}
+
+model UsuarioRol {
+  id        String  @id @default(uuid())
+  usuarioId String  @map("usuario_id")
+  rol       Rol
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, rol])
+  @@map("usuario_roles")
+}
+
+enum TipoPartido {
+  casual
+  amistoso
+  torneo_flash
+  torneo_oficial
+}
+
+enum TipoRanking {
+  oficial
+  no_oficial
+}
+
+enum EstadoPartido {
+  por_definir
+  pendiente
+  confirmado
+  descartado
+  en_revision
+  anulado
+}
+
+enum MotivoDisputa {
+  marcador_incorrecto
+  no_jugado
+  rival_equivocado
+}
+
+enum SlotCuadro {
+  A
+  B
+}
+
+model Partido {
+  id                      String        @id @default(uuid())
+  torneoId                String?       @map("torneo_id")
+  grupoId                 String?       @map("grupo_id")
+  ronda                   String?
+  nivelRonda               Int?          @map("nivel_ronda")
+  jugadorAId              String?       @map("jugador_a_id")
+  jugadorBId              String?       @map("jugador_b_id")
+  ganadorId               String?       @map("ganador_id")
+  tipoPartido             TipoPartido   @map("tipo_partido")
+  afectaRanking           TipoRanking   @map("afecta_ranking")
+  promovidoAOficial       Boolean       @default(false) @map("promovido_a_oficial")
+  estado                  EstadoPartido @default(pendiente)
+  motivoDisputa           MotivoDisputa? @map("motivo_disputa")
+  marcadorPropuesto       Json?         @map("marcador_propuesto")
+  comentarioDisputa       String?       @map("comentario_disputa")
+  fechaLimiteConfirmacion DateTime?     @map("fecha_limite_confirmacion")
+  fechaPartido            DateTime      @map("fecha_partido")
+  registradoPor           String        @map("registrado_por")
+  validadoPor             String?       @map("validado_por")
+  creadoEn                DateTime      @default(now()) @map("creado_en")
+  partidoSiguienteId      String?       @map("partido_siguiente_id")
+  slotSiguiente           SlotCuadro?   @map("slot_siguiente")
+
+  torneo      Torneo?  @relation(fields: [torneoId], references: [id])
+  grupo       Grupo?   @relation(fields: [grupoId], references: [id])
+  jugadorA    Usuario? @relation("PartidoJugadorA", fields: [jugadorAId], references: [id])
+  jugadorB    Usuario? @relation("PartidoJugadorB", fields: [jugadorBId], references: [id])
+  ganador     Usuario? @relation("PartidoGanador", fields: [ganadorId], references: [id])
+  registrador Usuario  @relation("PartidoRegistrador", fields: [registradoPor], references: [id])
+  validador   Usuario? @relation("PartidoValidador", fields: [validadoPor], references: [id])
+
+  partidoSiguiente   Partido?  @relation("PartidoCuadro", fields: [partidoSiguienteId], references: [id])
+  partidosAnteriores Partido[] @relation("PartidoCuadro")
+
+  sets             SetPartido[]
+  historialRanking HistorialRanking[]
+
+  @@map("partidos")
+}
+
+model SetPartido {
+  id             String @id @default(uuid())
+  partidoId      String @map("partido_id")
+  numeroSet      Int    @map("numero_set")
+  puntosJugadorA Int    @map("puntos_jugador_a")
+  puntosJugadorB Int    @map("puntos_jugador_b")
+
+  partido Partido @relation(fields: [partidoId], references: [id], onDelete: Cascade)
+
+  @@unique([partidoId, numeroSet])
+  @@map("sets_partido")
+}
+
+model HistorialRanking {
+  id          String      @id @default(uuid())
+  usuarioId   String      @map("usuario_id")
+  partidoId   String      @map("partido_id")
+  tipoRanking TipoRanking @map("tipo_ranking")
+  eloAntes    Int         @map("elo_antes")
+  eloDespues  Int         @map("elo_despues")
+  fecha       DateTime    @default(now())
+
+  usuario Usuario        @relation(fields: [usuarioId], references: [id])
+  partido Partido @relation(fields: [partidoId], references: [id])
+
+  @@map("historial_ranking")
+}
+
+enum TipoTorneo {
+  flash
+  oficial
+}
+
+enum AlcanceTorneo {
+  interno
+  abierto
+}
+
+enum FormatoTorneo {
+  eliminacion_directa
+  grupos
+  mixto
+}
+
+enum EstadoTorneo {
+  inscripciones_abiertas
+  inscripciones_cerradas
+  en_curso
+  finalizado
+}
+
+enum MetodoAsignacionGrupos {
+  aleatorio
+  ranking_serpentina
+  manual
+}
+
+enum OrigenInscripcion {
+  autoinscripcion
+  agregado_por_admin
+}
+
+model Torneo {
+  id                     String                   @id @default(uuid())
+  nombre                 String
+  tipo                   TipoTorneo
+  alcance                AlcanceTorneo
+  formato                FormatoTorneo
+  fechaInicio            DateTime                 @map("fecha_inicio")
+  fechaFin               DateTime                 @map("fecha_fin")
+  fechaLimiteInscripcion DateTime                 @map("fecha_limite_inscripcion")
+  estado                 EstadoTorneo             @default(inscripciones_abiertas)
+  numeroGrupos           Int?                     @map("numero_grupos")
+  metodoAsignacionGrupos MetodoAsignacionGrupos?  @map("metodo_asignacion_grupos")
+  clasificadosPorGrupo   Int?                     @map("clasificados_por_grupo")
+  creadoPor              String                   @map("creado_por")
+
+  creador       Usuario       @relation("TorneoCreador", fields: [creadoPor], references: [id])
+  inscripciones Inscripcion[]
+  partidos      Partido[]
+  grupos        Grupo[]
+
+  @@map("torneos")
+}
+
+model Grupo {
+  id       String @id @default(uuid())
+  torneoId String @map("torneo_id")
+  nombre   String
+
+  torneo    Torneo         @relation(fields: [torneoId], references: [id], onDelete: Cascade)
+  jugadores GrupoJugador[]
+  partidos  Partido[]
+
+  @@map("grupos")
+}
+
+model GrupoJugador {
+  id        String @id @default(uuid())
+  grupoId   String @map("grupo_id")
+  usuarioId String @map("usuario_id")
+
+  grupo   Grupo   @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@unique([grupoId, usuarioId])
+  @@map("grupo_jugadores")
+}
+
+model Inscripcion {
+  id               String            @id @default(uuid())
+  torneoId         String            @map("torneo_id")
+  usuarioId        String            @map("usuario_id")
+  fechaInscripcion DateTime          @default(now()) @map("fecha_inscripcion")
+  origen           OrigenInscripcion
+  semilla          Int?
+
+  torneo  Torneo  @relation(fields: [torneoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@unique([torneoId, usuarioId])
+  @@map("inscripciones")
+}
+
+// RNF-06: log de auditoría de cambios/anulaciones hechos por administradores
+model Auditoria {
+  id          String   @id @default(uuid())
+  usuarioId   String   @map("usuario_id")
+  accion      String
+  entidadTipo String   @map("entidad_tipo")
+  entidadId   String   @map("entidad_id")
+  detalle     Json?
+  fecha       DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("auditoria")
+}
+
+enum TipoNotificacion {
+  confirmacion_pendiente
+  partido_proximo
+  cambio_ranking
+  disputa
+  torneo
+}
+
+// Notificaciones in-app (sección 9: sin push en v1)
+model Notificacion {
+  id           String           @id @default(uuid())
+  usuarioId    String           @map("usuario_id")
+  tipo         TipoNotificacion
+  mensaje      String
+  referenciaId String?          @map("referencia_id")
+  leida        Boolean          @default(false)
+  fecha        DateTime         @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("notificaciones")
+}
