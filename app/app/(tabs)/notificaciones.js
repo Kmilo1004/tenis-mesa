@@ -33,9 +33,13 @@ export default function Notificaciones() {
 
   async function abrir(item) {
     if (!item.leida) {
-      apiFetch(`/notificaciones/${item.id}/leida`, { method: 'PATCH', token }).then(() => {
-        setNotificaciones((actuales) => actuales.map((n) => (n.id === item.id ? { ...n, leida: true } : n)));
-      });
+      apiFetch(`/notificaciones/${item.id}/leida`, { method: 'PATCH', token })
+        .then(() => {
+          setNotificaciones((actuales) => actuales.map((n) => (n.id === item.id ? { ...n, leida: true } : n)));
+        })
+        .catch(() => {
+          // no es crítico: si falla, se reintentará marcarla la próxima vez que se abra
+        });
     }
     if (TIPOS_CON_PARTIDO.includes(item.tipo) && item.referenciaId) {
       router.push(`/partidos/${item.referenciaId}`);

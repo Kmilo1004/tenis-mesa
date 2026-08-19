@@ -155,9 +155,24 @@ router.patch('/torneos/:id', verificarToken, requiereRol('administrador'), async
       data[campo] = fechaValida;
     }
 
-    if (numeroGrupos !== undefined) data.numeroGrupos = numeroGrupos;
-    if (metodoAsignacionGrupos !== undefined) data.metodoAsignacionGrupos = metodoAsignacionGrupos;
-    if (clasificadosPorGrupo !== undefined) data.clasificadosPorGrupo = clasificadosPorGrupo;
+    if (numeroGrupos !== undefined) {
+      if (!Number.isInteger(numeroGrupos) || numeroGrupos < 2 || numeroGrupos > LETRAS_GRUPO.length) {
+        return res.status(400).json({ error: `numeroGrupos debe ser un entero entre 2 y ${LETRAS_GRUPO.length}` });
+      }
+      data.numeroGrupos = numeroGrupos;
+    }
+    if (metodoAsignacionGrupos !== undefined) {
+      if (!METODOS_ASIGNACION_VALIDOS.includes(metodoAsignacionGrupos)) {
+        return res.status(400).json({ error: `metodoAsignacionGrupos debe ser uno de: ${METODOS_ASIGNACION_VALIDOS.join(', ')}` });
+      }
+      data.metodoAsignacionGrupos = metodoAsignacionGrupos;
+    }
+    if (clasificadosPorGrupo !== undefined) {
+      if (!Number.isInteger(clasificadosPorGrupo) || clasificadosPorGrupo < 1) {
+        return res.status(400).json({ error: 'clasificadosPorGrupo debe ser un entero mayor o igual a 1' });
+      }
+      data.clasificadosPorGrupo = clasificadosPorGrupo;
+    }
 
     const torneoActualizado = await prisma.torneo.update({ where: { id: torneo.id }, data });
 
@@ -261,6 +276,9 @@ router.delete('/torneos/:id/inscripciones/me', verificarToken, async (req, res, 
       return res.status(404).json({ error: 'No estás inscrito en este torneo' });
     }
 
+    // Si ya se generaron los grupos (pero aún no se publican), también quita su asignación
+    // para que no quede jugando un grupo del que ya no está inscrito.
+    await prisma.grupoJugador.deleteMany({ where: { usuarioId: req.usuarioId, grupo: { torneoId: torneo.id } } });
     await prisma.inscripcion.delete({ where: { id: inscripcion.id } });
     return res.status(204).send();
   } catch (error) {

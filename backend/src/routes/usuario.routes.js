@@ -96,7 +96,7 @@ router.get('/usuarios/buscar', verificarToken, async (req, res, next) => {
 });
 
 // GET /usuarios/{id}/historial-ranking?tipo=oficial|no_oficial
-router.get('/usuarios/:id/historial-ranking', async (req, res, next) => {
+router.get('/usuarios/:id/historial-ranking', verificarToken, async (req, res, next) => {
   try {
     const { tipo } = req.query;
     if (tipo && !['oficial', 'no_oficial'].includes(tipo)) {

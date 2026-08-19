@@ -1,5 +1,13 @@
 function celdaCsv(valor) {
-  const texto = valor === null || valor === undefined ? '' : String(valor);
+  let texto = valor === null || valor === undefined ? '' : String(valor);
+
+  // Evita inyección de fórmulas CSV: si Excel/Sheets abre una celda que empieza con
+  // = + - @, la interpreta como fórmula y podría ejecutarla (ej. un nombre de jugador externo
+  // malicioso como "=CMD(...)"). Anteponer un apóstrofe la neutraliza como texto plano.
+  if (/^[=+\-@]/.test(texto)) {
+    texto = `'${texto}`;
+  }
+
   if (/[",\n]/.test(texto)) {
     return `"${texto.replace(/"/g, '""')}"`;
   }

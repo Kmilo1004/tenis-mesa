@@ -12,7 +12,7 @@ const {
 const { kTorneo } = require('../lib/elo');
 const { registrarAuditoria } = require('../lib/auditoria.service');
 const { crearNotificacion } = require('../lib/notificaciones.service');
-const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
+const { verificarToken, requiereRol, obtenerRoles } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -40,7 +40,7 @@ router.post('/partidos', verificarToken, async (req, res, next) => {
       return res.status(400).json({ error: 'Un jugador no puede jugar contra sí mismo' });
     }
 
-    const rolesUsuario = (await prisma.usuarioRol.findMany({ where: { usuarioId: req.usuarioId } })).map((r) => r.rol);
+    const rolesUsuario = await obtenerRoles(req.usuarioId);
     const esAdminOArbitro = rolesUsuario.includes('administrador') || rolesUsuario.includes('arbitro');
 
     if (!esAdminOArbitro && req.usuarioId !== jugadorAId && req.usuarioId !== jugadorBId) {
@@ -147,6 +147,10 @@ router.post('/partidos/:id/confirmar', verificarToken, async (req, res, next) =>
       return res.status(404).json({ error: 'Partido no encontrado' });
     }
 
+    if (partido.torneoId) {
+      return res.status(400).json({ error: 'Los partidos de torneo no se confirman así; el resultado lo registra un admin o árbitro' });
+    }
+
     partido = await expirarSiVencido(prisma, partido);
 
     if (partido.estado !== 'pendiente') {
@@ -181,6 +185,10 @@ router.post('/partidos/:id/disputar', verificarToken, async (req, res, next) => 
     let partido = await prisma.partido.findUnique({ where: { id: req.params.id } });
     if (!partido) {
       return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+
+    if (partido.torneoId) {
+      return res.status(400).json({ error: 'Los partidos de torneo no se disputan así; contacta al administrador directamente' });
     }
 
     partido = await expirarSiVencido(prisma, partido);

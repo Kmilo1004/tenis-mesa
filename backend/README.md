@@ -208,6 +208,30 @@ Lo que queda de la Fase 8 es responsabilidad del equipo, no del código:
 **pruebas con usuarios reales del club** (idealmente un torneo Flash piloto)
 y la **documentación final de entrega** para la universidad.
 
+## Desplegar a producción (Render)
+
+Hasta ahora el backend solo corrió en `localhost`. Para que el celular de otra
+persona (fuera de tu WiFi) pueda usarlo — necesario para un torneo piloto real —
+hay que desplegarlo a un servidor público. `render.yaml` ya deja la configuración
+lista para un despliegue tipo Blueprint:
+
+1. Sube este repositorio a GitHub (si no lo has hecho: `git remote add origin <url>` y `git push -u origin master`).
+2. En [render.com](https://render.com), crea una cuenta y elige **New → Blueprint**, apuntando a este repositorio. Render detecta `backend/render.yaml` automáticamente.
+3. Cuando te pida las variables de entorno marcadas `sync: false`, usa los mismos valores de tu `backend/.env`:
+   - `DATABASE_URL`: la cadena de conexión de Neon (la misma que ya usas en desarrollo — no hace falta una base de datos separada para el piloto).
+   - `JWT_SECRET`: el mismo secreto que ya tienes generado.
+4. Render instala dependencias, corre `npx prisma migrate deploy` (aplica las migraciones ya creadas, sin generar unas nuevas) y arranca el servidor.
+5. Cuando termine, confirma que responde desde internet (no solo en tu red):
+   ```bash
+   curl https://tu-servicio.onrender.com/api/v1/health
+   ```
+6. Actualiza `app/.env` (`EXPO_PUBLIC_API_URL`) con esa URL pública en vez de la IP local, para que la app funcione desde cualquier red — ver el README de `/app`.
+
+Nota: el plan gratuito de Render "duerme" el servicio tras un rato sin tráfico y
+tarda unos segundos en despertar con la primera petición — normal para un piloto,
+pero considera un plan pago si el torneo real necesita respuesta inmediata todo
+el tiempo.
+
 ## Próximos pasos
 
 El alcance de v1 definido en la sección 2 del documento está completo (Fases 0 a 8).
