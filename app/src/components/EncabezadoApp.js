@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colores, radios } from '../theme/colores';
 
@@ -10,7 +10,10 @@ export default function EncabezadoApp({ children, accionDerecha }) {
   return (
     <View style={[estilos.contenedor, { paddingTop: insets.top + 12 }]}>
       <View style={estilos.filaMarca}>
-        <Text style={estilos.marca}>TM UNIMAG</Text>
+        <View style={estilos.filaLogo}>
+          <Image source={require('../../assets/Logo.jpeg')} style={estilos.logo} />
+          <Text style={estilos.marca}>TM UNIMAG</Text>
+        </View>
         {accionDerecha}
       </View>
       {children}
@@ -27,5 +30,7 @@ const estilos = StyleSheet.create({
     borderBottomRightRadius: radios.encabezado,
   },
   filaMarca: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  filaLogo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logo: { width: 34, height: 34, borderRadius: 17 },
   marca: { color: colores.textoClaro, fontSize: 22, fontWeight: '800', letterSpacing: 0.5 },
 });

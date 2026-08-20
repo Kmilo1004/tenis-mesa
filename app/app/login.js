@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Link, router, Stack } from 'expo-router';
 import { useAuth } from '../src/auth/AuthContext';
 import CampoTexto from '../src/components/CampoTexto';
@@ -29,6 +29,7 @@ export default function Login() {
     <KeyboardAvoidingView style={estilos.fondo} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={estilos.contenedor}>
+        <Image source={require('../assets/Logo.jpeg')} style={estilos.logo} />
         <Text style={estilos.marca}>TM UNIMAG</Text>
         <Text style={estilos.eslogan}>Ranking de tenis de mesa</Text>
 
@@ -67,6 +68,7 @@ export default function Login() {
 const estilos = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: colores.navy },
   contenedor: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  logo: { width: 88, height: 88, borderRadius: 44, marginBottom: 12 },
   marca: { color: colores.textoClaro, fontSize: 30, fontWeight: '800', letterSpacing: 1 },
   eslogan: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4, marginBottom: 32 },
   tarjeta: { backgroundColor: colores.tarjeta, borderRadius: radios.tarjeta, padding: 24, width: '100%' },
