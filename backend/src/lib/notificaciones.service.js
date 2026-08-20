@@ -29,12 +29,12 @@ async function notificarCambioRanking(tx, usuarioId, tipoRanking, nuevoElo) {
     where: { tipo: 'interno', activo: true, [campoElo]: { gt: nuevoElo } },
   });
   const posicion = conMasPuntos + 1;
-  const etiqueta = tipoRanking === 'oficial' ? 'Oficial' : 'No Oficial';
+  const etiqueta = tipoRanking === 'oficial' ? 'Ranking Interno' : 'Ranking';
 
   await crearNotificacion(tx, {
     usuarioId,
     tipo: 'cambio_ranking',
-    mensaje: `Tu ranking ${etiqueta} cambió: ahora estás en el puesto #${posicion} (${nuevoElo} pts)`,
+    mensaje: `Tu ${etiqueta} cambió: ahora estás en el puesto #${posicion} (${nuevoElo} pts)`,
   });
 }
 

@@ -55,13 +55,13 @@ export default function Ranking() {
             style={[estilos.selectorBoton, tipo === 'no_oficial' && estilos.selectorBotonActivo]}
             onPress={() => setTipo('no_oficial')}
           >
-            <Text style={[estilos.selectorTexto, tipo === 'no_oficial' && estilos.selectorTextoActivo]}>No Oficial</Text>
+            <Text style={[estilos.selectorTexto, tipo === 'no_oficial' && estilos.selectorTextoActivo]}>Ranking</Text>
           </Pressable>
           <Pressable
             style={[estilos.selectorBoton, tipo === 'oficial' && estilos.selectorBotonActivo]}
             onPress={() => setTipo('oficial')}
           >
-            <Text style={[estilos.selectorTexto, tipo === 'oficial' && estilos.selectorTextoActivo]}>Oficial</Text>
+            <Text style={[estilos.selectorTexto, tipo === 'oficial' && estilos.selectorTextoActivo]}>Ranking Interno</Text>
           </Pressable>
         </View>
       </EncabezadoApp>

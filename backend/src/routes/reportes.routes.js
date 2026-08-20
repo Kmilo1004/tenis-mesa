@@ -39,7 +39,7 @@ router.get('/reportes/ranking', verificarToken, requiereRol('administrador'), as
 
     return responderReporte(res, formato, {
       archivo: `ranking-${tipo}`,
-      titulo: `Ranking ${tipo === 'oficial' ? 'Oficial' : 'No Oficial'}`,
+      titulo: tipo === 'oficial' ? 'Ranking Interno' : 'Ranking',
       columnas,
       filas,
     });

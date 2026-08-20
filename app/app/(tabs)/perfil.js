@@ -61,12 +61,12 @@ export default function Perfil() {
           <View style={estilos.tarjetasElo}>
             <View style={estilos.itemElo}>
               <Text style={estilos.eloValor}>{usuario.eloOficial}</Text>
-              <Text style={estilos.eloEtiqueta}>Oficial</Text>
+              <Text style={estilos.eloEtiqueta}>Ranking Interno</Text>
             </View>
             <View style={estilos.separador} />
             <View style={estilos.itemElo}>
               <Text style={estilos.eloValor}>{usuario.eloNoOficial}</Text>
-              <Text style={estilos.eloEtiqueta}>No Oficial</Text>
+              <Text style={estilos.eloEtiqueta}>Ranking</Text>
             </View>
           </View>
         </View>

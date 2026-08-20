@@ -7,8 +7,8 @@ import { descargarYCompartir } from '../src/lib/exportar';
 import SelectorOpciones from '../src/components/SelectorOpciones';
 
 const TIPOS_RANKING = [
-  { valor: 'oficial', etiqueta: 'Oficial' },
-  { valor: 'no_oficial', etiqueta: 'No Oficial' },
+  { valor: 'oficial', etiqueta: 'Ranking Interno' },
+  { valor: 'no_oficial', etiqueta: 'Ranking' },
 ];
 const FORMATOS = [
   { valor: 'csv', etiqueta: 'CSV' },
