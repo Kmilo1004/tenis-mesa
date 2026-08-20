@@ -95,6 +95,6 @@ export default function NuevoTorneo() {
 const estilos = StyleSheet.create({
   contenedor: { padding: 20, paddingBottom: 48 },
   error: { color: '#dc2626', marginTop: 8, textAlign: 'center' },
-  boton: { backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 12 },
+  boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 12 },
   botonTexto: { color: '#fff', fontWeight: '700' },
 });

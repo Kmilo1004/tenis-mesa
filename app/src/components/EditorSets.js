@@ -91,5 +91,5 @@ const estilos = StyleSheet.create({
   guion: { width: 24, textAlign: 'center', color: '#666' },
   filaBotones: { flexDirection: 'row', gap: 12, marginTop: 4, marginBottom: 8 },
   botonSecundario: { paddingVertical: 8, paddingHorizontal: 12 },
-  botonSecundarioTexto: { color: '#1d4ed8', fontWeight: '600', fontSize: 13 },
+  botonSecundarioTexto: { color: '#0B1E4D', fontWeight: '600', fontSize: 13 },
 });

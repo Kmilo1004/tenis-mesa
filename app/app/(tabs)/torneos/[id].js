@@ -150,7 +150,7 @@ export default function DetalleTorneo() {
 
         {puedoGenerarCuadro && (
           <Pressable style={estilos.botonAdmin} onPress={generarCuadro} disabled={enviando}>
-            {enviando ? <ActivityIndicator color="#1d4ed8" /> : <Text style={estilos.botonAdminTexto}>Generar cuadro</Text>}
+            {enviando ? <ActivityIndicator color="#0B1E4D" /> : <Text style={estilos.botonAdminTexto}>Generar cuadro</Text>}
           </Pressable>
         )}
 
@@ -167,10 +167,10 @@ export default function DetalleTorneo() {
         {esAdmin && (
           <View style={estilos.filaExportar}>
             <Pressable style={[estilos.botonAdmin, { flex: 1 }]} onPress={() => exportarResultados('csv')} disabled={exportando}>
-              {exportando ? <ActivityIndicator color="#1d4ed8" /> : <Text style={estilos.botonAdminTexto}>Exportar CSV</Text>}
+              {exportando ? <ActivityIndicator color="#0B1E4D" /> : <Text style={estilos.botonAdminTexto}>Exportar CSV</Text>}
             </Pressable>
             <Pressable style={[estilos.botonAdmin, { flex: 1 }]} onPress={() => exportarResultados('pdf')} disabled={exportando}>
-              {exportando ? <ActivityIndicator color="#1d4ed8" /> : <Text style={estilos.botonAdminTexto}>Exportar PDF</Text>}
+              {exportando ? <ActivityIndicator color="#0B1E4D" /> : <Text style={estilos.botonAdminTexto}>Exportar PDF</Text>}
             </Pressable>
           </View>
         )}
@@ -217,16 +217,16 @@ const estilos = StyleSheet.create({
   contenedor: { padding: 20, alignItems: 'center', backgroundColor: '#fff' },
   nombre: { fontSize: 22, fontWeight: '700', textAlign: 'center' },
   detalle: { color: '#555', marginTop: 4, textTransform: 'capitalize' },
-  estado: { color: '#1d4ed8', fontWeight: '600', marginTop: 8 },
+  estado: { color: '#0B1E4D', fontWeight: '600', marginTop: 8 },
   fecha: { color: '#888', fontSize: 12, marginTop: 4 },
   error: { color: '#dc2626', marginTop: 12, textAlign: 'center' },
   acciones: { width: '100%', marginTop: 20, gap: 10 },
-  boton: { backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
+  boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
   botonTexto: { color: '#fff', fontWeight: '700' },
   botonSecundario: { paddingVertical: 10, alignItems: 'center' },
   botonSecundarioTexto: { color: '#dc2626', fontWeight: '600' },
-  botonAdmin: { borderWidth: 1, borderColor: '#1d4ed8', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-  botonAdminTexto: { color: '#1d4ed8', fontWeight: '600' },
+  botonAdmin: { borderWidth: 1, borderColor: '#0B1E4D', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  botonAdminTexto: { color: '#0B1E4D', fontWeight: '600' },
   filaExportar: { flexDirection: 'row', gap: 10 },
   subtitulo: { alignSelf: 'flex-start', fontWeight: '600', marginTop: 28, marginBottom: 8 },
   vacio: { color: '#888', fontSize: 13, alignSelf: 'flex-start' },
@@ -241,7 +241,7 @@ const estilos = StyleSheet.create({
   inscritoNombre: { fontSize: 14 },
   tagExterno: { fontSize: 11, color: '#7e22ce', fontWeight: '600' },
   bloqueRonda: { width: '100%', marginBottom: 16 },
-  nombreRonda: { fontWeight: '700', color: '#1d4ed8', marginBottom: 6 },
+  nombreRonda: { fontWeight: '700', color: '#0B1E4D', marginBottom: 6 },
   filaPartido: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -8,6 +8,10 @@ const router = express.Router();
 const CORREO_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TIPOS_VALIDOS = ['interno', 'externo'];
 
+// Lista fija de universidades/clubes seleccionables al registrarse. Es solo informativo (no
+// separa rankings ni torneos): agregar una nueva institución es simplemente sumarla aquí.
+const INSTITUCIONES_VALIDAS = ['Universidad del Magdalena'];
+
 function generarToken(usuarioId) {
   return jwt.sign({ id: usuarioId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -22,7 +26,7 @@ function excluirPasswordHash(usuario) {
 // POST /auth/registro
 router.post('/auth/registro', async (req, res, next) => {
   try {
-    const { nombre, correo, password, tipo, procedencia, programaFacultad } = req.body;
+    const { nombre, correo, password, tipo, procedencia, institucion, programaFacultad } = req.body;
 
     if (!nombre || !correo || !password || !tipo) {
       return res.status(400).json({ error: 'nombre, correo, password y tipo son obligatorios' });
@@ -40,6 +44,10 @@ router.post('/auth/registro', async (req, res, next) => {
       return res.status(400).json({ error: `tipo debe ser uno de: ${TIPOS_VALIDOS.join(', ')}` });
     }
 
+    if (institucion !== undefined && institucion !== null && !INSTITUCIONES_VALIDAS.includes(institucion)) {
+      return res.status(400).json({ error: `institucion debe ser una de: ${INSTITUCIONES_VALIDAS.join(', ')}` });
+    }
+
     const correoExistente = await prisma.usuario.findUnique({ where: { correo } });
     if (correoExistente) {
       return res.status(409).json({ error: 'Ya existe un usuario registrado con ese correo' });
@@ -54,6 +62,7 @@ router.post('/auth/registro', async (req, res, next) => {
         passwordHash,
         tipo,
         procedencia,
+        institucion,
         programaFacultad,
         roles: { create: { rol: 'jugador' } },
       },

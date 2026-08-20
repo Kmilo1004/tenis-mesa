@@ -1,16 +1,19 @@
 import { useCallback, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
+import EncabezadoApp from '../../../src/components/EncabezadoApp';
+import { colores, radios } from '../../../src/theme/colores';
 
 const ETIQUETAS_ESTADO = {
-  pendiente: { texto: 'Pendiente de confirmar', color: '#b45309', fondo: '#fef3c7' },
-  confirmado: { texto: 'Confirmado', color: '#15803d', fondo: '#dcfce7' },
-  descartado: { texto: 'Descartado', color: '#6b7280', fondo: '#f3f4f6' },
-  en_revision: { texto: 'En disputa', color: '#7e22ce', fondo: '#f3e8ff' },
-  anulado: { texto: 'Anulado', color: '#b91c1c', fondo: '#fee2e2' },
-  por_definir: { texto: 'Por definir', color: '#6b7280', fondo: '#f3f4f6' },
+  pendiente: { texto: 'Pendiente de confirmar', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  confirmado: { texto: 'Confirmado', color: colores.exito, fondo: colores.exitoFondo },
+  descartado: { texto: 'Descartado', color: colores.textoSecundario, fondo: colores.gris },
+  en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
+  anulado: { texto: 'Anulado', color: colores.error, fondo: colores.errorFondo },
+  por_definir: { texto: 'Por definir', color: colores.textoSecundario, fondo: colores.gris },
 };
 
 export default function ListaPartidos() {
@@ -40,15 +43,17 @@ export default function ListaPartidos() {
 
   return (
     <View style={estilos.contenedor}>
+      <EncabezadoApp />
+
       {cargando ? (
-        <ActivityIndicator style={{ marginTop: 24 }} />
+        <ActivityIndicator style={{ marginTop: 24 }} color={colores.navy} />
       ) : error ? (
         <Text style={estilos.error}>{error}</Text>
       ) : (
         <FlatList
           data={partidos}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
+          contentContainerStyle={{ padding: 16, paddingTop: 8, paddingBottom: 96 }}
           onRefresh={cargar}
           refreshing={false}
           ListEmptyComponent={<Text style={estilos.vacio}>Todavía no has jugado ningún partido</Text>}
@@ -59,13 +64,16 @@ export default function ListaPartidos() {
 
             return (
               <Pressable style={estilos.tarjeta} onPress={() => router.push(`/partidos/${item.id}`)}>
-                <View style={{ flex: 1 }}>
-                  <Text style={estilos.rival}>vs {rival?.nombre || 'Por definir'}</Text>
-                  <Text style={estilos.fecha}>{new Date(item.fechaPartido).toLocaleDateString('es-CO')}</Text>
+                <View style={estilos.filaSuperior}>
+                  <View style={[estilos.badge, { backgroundColor: etiqueta.fondo }]}>
+                    <Text style={[estilos.badgeTexto, { color: etiqueta.color }]}>{etiqueta.texto}</Text>
+                  </View>
                   {item.torneoId && <Text style={estilos.torneoTag}>{item.ronda || 'Torneo'}</Text>}
                 </View>
-                <View style={[estilos.badge, { backgroundColor: etiqueta.fondo }]}>
-                  <Text style={[estilos.badgeTexto, { color: etiqueta.color }]}>{etiqueta.texto}</Text>
+                <Text style={estilos.rival}>vs {rival?.nombre || 'Por definir'}</Text>
+                <View style={estilos.filaFecha}>
+                  <Ionicons name="calendar-outline" size={13} color={colores.textoSecundario} />
+                  <Text style={estilos.fecha}>{new Date(item.fechaPartido).toLocaleDateString('es-CO')}</Text>
                 </View>
               </Pressable>
             );
@@ -75,7 +83,8 @@ export default function ListaPartidos() {
 
       <Link href="/partidos/nuevo" asChild>
         <Pressable style={estilos.fab}>
-          <Text style={estilos.fabTexto}>+ Registrar partido</Text>
+          <Ionicons name="add" size={18} color={colores.textoClaro} />
+          <Text style={estilos.fabTexto}>Registrar partido</Text>
         </Pressable>
       </Link>
     </View>
@@ -83,31 +92,39 @@ export default function ListaPartidos() {
 }
 
 const estilos = StyleSheet.create({
-  contenedor: { flex: 1, backgroundColor: '#fff' },
-  error: { color: '#dc2626', textAlign: 'center', marginTop: 24 },
-  vacio: { textAlign: 'center', color: '#888', marginTop: 24 },
+  contenedor: { flex: 1, backgroundColor: colores.fondo },
+  error: { color: colores.error, textAlign: 'center', marginTop: 24 },
+  vacio: { textAlign: 'center', color: colores.textoSecundario, marginTop: 24 },
   tarjeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: radios.tarjeta,
+    backgroundColor: colores.tarjeta,
     marginBottom: 10,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  rival: { fontSize: 16, fontWeight: '600' },
-  fecha: { fontSize: 12, color: '#666', marginTop: 2 },
-  torneoTag: { fontSize: 11, color: '#1d4ed8', marginTop: 4, fontWeight: '600' },
-  badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  filaSuperior: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  rival: { fontSize: 16, fontWeight: '700', color: colores.texto },
+  filaFecha: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  fecha: { fontSize: 12, color: colores.textoSecundario },
+  torneoTag: { fontSize: 11, color: colores.navy, fontWeight: '700' },
+  badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radios.pildora },
   badgeTexto: { fontSize: 11, fontWeight: '700' },
   fab: {
     position: 'absolute',
     bottom: 24,
     alignSelf: 'center',
-    backgroundColor: '#1d4ed8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colores.navy,
     paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 999,
+    paddingHorizontal: 22,
+    borderRadius: radios.pildora,
     elevation: 3,
   },
-  fabTexto: { color: '#fff', fontWeight: '700' },
+  fabTexto: { color: colores.textoClaro, fontWeight: '700' },
 });

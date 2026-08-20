@@ -94,10 +94,10 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  checkboxMarcado: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
+  checkboxMarcado: { backgroundColor: '#0B1E4D', borderColor: '#0B1E4D' },
   checkboxMarca: { color: '#fff', fontSize: 14, fontWeight: '700' },
   textoConsentimiento: { flex: 1, fontSize: 13, color: '#444' },
   error: { color: '#dc2626', marginTop: 8, textAlign: 'center' },
-  boton: { backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   botonTexto: { color: '#fff', fontWeight: '700' },
 });

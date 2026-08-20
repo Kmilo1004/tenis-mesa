@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Link, router, Stack } from 'expo-router';
 import { useAuth } from '../src/auth/AuthContext';
 import CampoTexto from '../src/components/CampoTexto';
+import { colores, radios } from '../src/theme/colores';
 
 export default function Login() {
   const { iniciarSesion } = useAuth();
@@ -25,44 +26,55 @@ export default function Login() {
   }
 
   return (
-    <KeyboardAvoidingView style={estilos.contenedor} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={estilos.fondo} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Text style={estilos.titulo}>Tenis de Mesa</Text>
-      <Text style={estilos.subtitulo}>Inicia sesión con tu correo institucional</Text>
+      <ScrollView contentContainerStyle={estilos.contenedor}>
+        <Text style={estilos.marca}>TM UNIMAG</Text>
+        <Text style={estilos.eslogan}>Ranking de tenis de mesa</Text>
 
-      <CampoTexto
-        etiqueta="Correo"
-        placeholder="tucorreo@universidad.edu"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={correo}
-        onChangeText={setCorreo}
-      />
-      <CampoTexto etiqueta="Contraseña" placeholder="••••••••" secureTextEntry value={password} onChangeText={setPassword} />
+        <View style={estilos.tarjeta}>
+          <Text style={estilos.titulo}>Iniciar sesión</Text>
+          <Text style={estilos.subtitulo}>Con tu correo institucional</Text>
 
-      {error && <Text style={estilos.error}>{error}</Text>}
+          <CampoTexto
+            etiqueta="Correo"
+            placeholder="tucorreo@universidad.edu"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={correo}
+            onChangeText={setCorreo}
+          />
+          <CampoTexto etiqueta="Contraseña" placeholder="••••••••" secureTextEntry value={password} onChangeText={setPassword} />
 
-      <Pressable style={estilos.boton} onPress={enviar} disabled={enviando || !correo || !password}>
-        {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Iniciar sesión</Text>}
-      </Pressable>
+          {error && <Text style={estilos.error}>{error}</Text>}
 
-      <Link href="/registro" style={estilos.enlace}>
-        ¿No tienes cuenta? Regístrate
-      </Link>
-      <Link href="/salud" style={estilos.enlaceSecundario}>
-        ¿Problemas de conexión?
-      </Link>
+          <Pressable style={estilos.boton} onPress={enviar} disabled={enviando || !correo || !password}>
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Iniciar sesión</Text>}
+          </Pressable>
+
+          <Link href="/registro" style={estilos.enlace}>
+            ¿No tienes cuenta? Regístrate
+          </Link>
+          <Link href="/salud" style={estilos.enlaceSecundario}>
+            ¿Problemas de conexión?
+          </Link>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const estilos = StyleSheet.create({
-  contenedor: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  titulo: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
-  subtitulo: { fontSize: 14, color: '#666', marginBottom: 24, textAlign: 'center' },
-  boton: { backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 8, width: '100%', alignItems: 'center', marginTop: 8 },
-  botonTexto: { color: '#fff', fontWeight: '600' },
-  error: { color: '#dc2626', marginBottom: 8, textAlign: 'center' },
-  enlace: { marginTop: 20, color: '#1d4ed8', fontWeight: '600' },
-  enlaceSecundario: { marginTop: 12, color: '#888', fontSize: 12 },
+  fondo: { flex: 1, backgroundColor: colores.navy },
+  contenedor: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  marca: { color: colores.textoClaro, fontSize: 30, fontWeight: '800', letterSpacing: 1 },
+  eslogan: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4, marginBottom: 32 },
+  tarjeta: { backgroundColor: colores.tarjeta, borderRadius: radios.tarjeta, padding: 24, width: '100%' },
+  titulo: { fontSize: 20, fontWeight: '800', color: colores.texto, marginBottom: 2 },
+  subtitulo: { fontSize: 13, color: colores.textoSecundario, marginBottom: 20 },
+  boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, width: '100%', alignItems: 'center', marginTop: 8 },
+  botonTexto: { color: colores.textoClaro, fontWeight: '700' },
+  error: { color: colores.error, marginBottom: 8, textAlign: 'center' },
+  enlace: { marginTop: 20, color: colores.navy, fontWeight: '600', textAlign: 'center' },
+  enlaceSecundario: { marginTop: 12, color: colores.textoSecundario, fontSize: 12, textAlign: 'center' },
 });

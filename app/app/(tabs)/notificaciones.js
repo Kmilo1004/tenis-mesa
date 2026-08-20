@@ -1,8 +1,11 @@
 import { useCallback, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthContext';
+import EncabezadoApp from '../../src/components/EncabezadoApp';
+import { colores, radios } from '../../src/theme/colores';
 
 const TIPOS_CON_PARTIDO = ['confirmacion_pendiente', 'partido_proximo'];
 
@@ -48,18 +51,25 @@ export default function Notificaciones() {
 
   return (
     <View style={estilos.contenedor}>
+      <EncabezadoApp />
+
       {cargando ? (
-        <ActivityIndicator style={{ marginTop: 24 }} />
+        <ActivityIndicator style={{ marginTop: 24 }} color={colores.navy} />
       ) : error ? (
         <Text style={estilos.error}>{error}</Text>
       ) : (
         <FlatList
           data={notificaciones}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{ padding: 16, paddingTop: 8, flexGrow: 1 }}
           onRefresh={cargar}
           refreshing={false}
-          ListEmptyComponent={<Text style={estilos.vacio}>No tienes notificaciones</Text>}
+          ListEmptyComponent={
+            <View style={estilos.vacioContenedor}>
+              <Ionicons name="notifications-off-outline" size={40} color={colores.borde} />
+              <Text style={estilos.vacio}>No tienes notificaciones</Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <Pressable style={[estilos.fila, !item.leida && estilos.filaNoLeida]} onPress={() => abrir(item)}>
               {!item.leida && <View style={estilos.punto} />}
@@ -76,21 +86,27 @@ export default function Notificaciones() {
 }
 
 const estilos = StyleSheet.create({
-  contenedor: { flex: 1, backgroundColor: '#fff' },
-  error: { color: '#dc2626', textAlign: 'center', marginTop: 24 },
-  vacio: { textAlign: 'center', color: '#888', marginTop: 24 },
+  contenedor: { flex: 1, backgroundColor: colores.fondo },
+  error: { color: colores.error, textAlign: 'center', marginTop: 24 },
+  vacioContenedor: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 12 },
+  vacio: { textAlign: 'center', color: colores.textoSecundario },
   fila: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#f9fafb',
-    marginBottom: 8,
+    padding: 14,
+    borderRadius: radios.tarjeta,
+    backgroundColor: colores.tarjeta,
+    marginBottom: 10,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  filaNoLeida: { backgroundColor: '#eff6ff' },
-  punto: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1d4ed8', marginTop: 6 },
-  mensaje: { fontSize: 14, color: '#333' },
-  mensajeNoLeido: { fontWeight: '700', color: '#111' },
-  fecha: { fontSize: 11, color: '#888', marginTop: 4 },
+  filaNoLeida: { backgroundColor: '#EEF2FF' },
+  punto: { width: 8, height: 8, borderRadius: 4, backgroundColor: colores.navy, marginTop: 6 },
+  mensaje: { fontSize: 14, color: colores.texto },
+  mensajeNoLeido: { fontWeight: '700', color: colores.texto },
+  fecha: { fontSize: 11, color: colores.textoSecundario, marginTop: 4 },
 });

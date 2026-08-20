@@ -64,7 +64,7 @@ const estilos = StyleSheet.create({
   },
   subtitulo: { fontSize: 14, color: '#666', marginBottom: 16, textAlign: 'center' },
   boton: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#0B1E4D',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 8,

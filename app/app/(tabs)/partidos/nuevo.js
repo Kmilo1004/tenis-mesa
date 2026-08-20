@@ -124,8 +124,8 @@ const estilos = StyleSheet.create({
     borderRadius: 8,
   },
   rivalNombre: { fontWeight: '600' },
-  quitarRival: { color: '#1d4ed8', fontSize: 12, fontWeight: '600' },
+  quitarRival: { color: '#0B1E4D', fontSize: 12, fontWeight: '600' },
   error: { color: '#dc2626', marginTop: 8, textAlign: 'center' },
-  boton: { backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   botonTexto: { color: '#fff', fontWeight: '700' },
 });

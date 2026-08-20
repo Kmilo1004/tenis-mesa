@@ -28,6 +28,7 @@ model Usuario {
   passwordHash      String?  @map("password_hash")
   tipo              TipoUsuario
   procedencia       String?
+  institucion       String?
   programaFacultad  String?  @map("programa_facultad")
   eloOficial        Int      @default(1000) @map("elo_oficial")
   eloNoOficial      Int      @default(1000) @map("elo_no_oficial")

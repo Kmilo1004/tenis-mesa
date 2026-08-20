@@ -3,12 +3,19 @@ import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Keybo
 import { Link, router, Stack } from 'expo-router';
 import { useAuth } from '../src/auth/AuthContext';
 import CampoTexto from '../src/components/CampoTexto';
+import SelectorOpciones from '../src/components/SelectorOpciones';
+import { colores } from '../src/theme/colores';
+
+// Misma lista que valida el backend (INSTITUCIONES_VALIDAS en auth.routes.js). Es informativo:
+// no separa rankings ni torneos, solo se guarda y se muestra en el perfil.
+const INSTITUCIONES = [{ valor: 'Universidad del Magdalena', etiqueta: 'Universidad del Magdalena' }];
 
 export default function Registro() {
   const { registrarse } = useAuth();
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
+  const [institucion, setInstitucion] = useState(INSTITUCIONES[0].valor);
   const [programaFacultad, setProgramaFacultad] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
@@ -24,6 +31,7 @@ export default function Registro() {
         correo: correo.trim(),
         password,
         tipo: 'interno',
+        institucion,
         programaFacultad: programaFacultad.trim() || undefined,
       });
       router.replace('/perfil');
@@ -57,6 +65,9 @@ export default function Registro() {
           value={password}
           onChangeText={setPassword}
         />
+
+        <SelectorOpciones etiqueta="Universidad o club" opciones={INSTITUCIONES} valor={institucion} onCambiar={setInstitucion} />
+
         <CampoTexto
           etiqueta="Programa o facultad (opcional)"
           placeholder="Ingeniería de Sistemas"
@@ -67,7 +78,7 @@ export default function Registro() {
         {error && <Text style={estilos.error}>{error}</Text>}
 
         <Pressable style={estilos.boton} onPress={enviar} disabled={enviando || !listo}>
-          {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Crear cuenta</Text>}
+          {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Crear cuenta</Text>}
         </Pressable>
 
         <Link href="/login" style={estilos.enlace}>
@@ -79,11 +90,11 @@ export default function Registro() {
 }
 
 const estilos = StyleSheet.create({
-  contenedor: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  titulo: { fontSize: 24, fontWeight: 'bold', marginBottom: 4 },
-  subtitulo: { fontSize: 13, color: '#666', marginBottom: 20, textAlign: 'center' },
-  boton: { backgroundColor: '#1d4ed8', paddingVertical: 14, borderRadius: 8, width: '100%', alignItems: 'center', marginTop: 8 },
-  botonTexto: { color: '#fff', fontWeight: '600' },
-  error: { color: '#dc2626', marginBottom: 8, textAlign: 'center' },
-  enlace: { marginTop: 20, color: '#1d4ed8', fontWeight: '600' },
+  contenedor: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colores.fondo },
+  titulo: { fontSize: 24, fontWeight: '800', color: colores.texto, marginBottom: 4 },
+  subtitulo: { fontSize: 13, color: colores.textoSecundario, marginBottom: 20, textAlign: 'center' },
+  boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, width: '100%', alignItems: 'center', marginTop: 8 },
+  botonTexto: { color: colores.textoClaro, fontWeight: '700' },
+  error: { color: colores.error, marginBottom: 8, textAlign: 'center' },
+  enlace: { marginTop: 20, color: colores.navy, fontWeight: '600' },
 });

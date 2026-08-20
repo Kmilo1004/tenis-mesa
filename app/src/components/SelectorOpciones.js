@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { colores } from '../theme/colores';
 
 export default function SelectorOpciones({ etiqueta, opciones, valor, onCambiar }) {
   return (
@@ -24,7 +25,7 @@ const estilos = StyleSheet.create({
   etiqueta: { fontSize: 13, color: '#444', marginBottom: 6, fontWeight: '600' },
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   opcion: { borderWidth: 1, borderColor: '#ccc', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
-  opcionActiva: { backgroundColor: '#1d4ed8', borderColor: '#1d4ed8' },
+  opcionActiva: { backgroundColor: colores.navy, borderColor: colores.navy },
   opcionTexto: { color: '#333' },
   opcionTextoActivo: { color: '#fff', fontWeight: '600' },
 });
