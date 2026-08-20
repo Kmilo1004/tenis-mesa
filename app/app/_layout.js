@@ -15,7 +15,9 @@ export default function LayoutRaiz() {
             headerTitleStyle: { fontWeight: '700' },
             contentStyle: { backgroundColor: colores.fondo },
           }}
-        />
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
       </AuthProvider>
     </SafeAreaProvider>
   );
