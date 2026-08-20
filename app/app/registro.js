@@ -8,7 +8,10 @@ import { colores } from '../src/theme/colores';
 
 // Misma lista que valida el backend (INSTITUCIONES_VALIDAS en auth.routes.js). Es informativo:
 // no separa rankings ni torneos, solo se guarda y se muestra en el perfil.
-const INSTITUCIONES = [{ valor: 'Universidad del Magdalena', etiqueta: 'Universidad del Magdalena' }];
+const INSTITUCIONES = [
+  { valor: 'Universidad del Magdalena', etiqueta: 'Universidad del Magdalena' },
+  { valor: 'Independiente', etiqueta: 'Independiente' },
+];
 
 export default function Registro() {
   const { registrarse } = useAuth();

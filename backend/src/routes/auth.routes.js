@@ -10,7 +10,7 @@ const TIPOS_VALIDOS = ['interno', 'externo'];
 
 // Lista fija de universidades/clubes seleccionables al registrarse. Es solo informativo (no
 // separa rankings ni torneos): agregar una nueva institución es simplemente sumarla aquí.
-const INSTITUCIONES_VALIDAS = ['Universidad del Magdalena'];
+const INSTITUCIONES_VALIDAS = ['Universidad del Magdalena', 'Independiente'];
 
 function generarToken(usuarioId) {
   return jwt.sign({ id: usuarioId }, process.env.JWT_SECRET, {
