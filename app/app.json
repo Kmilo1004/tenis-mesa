@@ -2,6 +2,7 @@
   "expo": {
     "name": "TM UNIMAG",
     "slug": "tenis-mesa-app",
+    "owner": "kmilo.al",
     "scheme": "tenismesa",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.tmunimag.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -25,6 +27,12 @@
       "expo-router",
       "expo-secure-store",
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5eaaea33-78d8-400f-a705-25a6efeaced6"
+      }
+    }
   }
 }
