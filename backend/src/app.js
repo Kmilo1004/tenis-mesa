@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const healthRoutes = require('./routes/health.routes');
+const versionRoutes = require('./routes/version.routes');
 const authRoutes = require('./routes/auth.routes');
 const usuarioRoutes = require('./routes/usuario.routes');
 const partidoRoutes = require('./routes/partido.routes');
@@ -18,6 +19,7 @@ app.use(express.json());
 
 // Todas las rutas de la API viven bajo /api/v1 (convención definida en el documento, sección 8)
 app.use('/api/v1', healthRoutes);
+app.use('/api/v1', versionRoutes);
 app.use('/api/v1', authRoutes);
 app.use('/api/v1', usuarioRoutes);
 app.use('/api/v1', partidoRoutes);
