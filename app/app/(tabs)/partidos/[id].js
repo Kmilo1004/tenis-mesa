@@ -57,7 +57,7 @@ export default function DetallePartido() {
     }, [cargar]),
   );
 
-  if (cargando || !partido) {
+  if (cargando || !partido || !usuario) {
     return (
       <View style={estilos.centrado}>
         <ActivityIndicator color={colores.navy} />

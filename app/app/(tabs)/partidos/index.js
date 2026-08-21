@@ -23,6 +23,7 @@ export default function ListaPartidos() {
   const [error, setError] = useState(null);
 
   const cargar = useCallback(async () => {
+    if (!usuario) return;
     setCargando(true);
     setError(null);
     try {
@@ -33,13 +34,17 @@ export default function ListaPartidos() {
     } finally {
       setCargando(false);
     }
-  }, [usuario.id, token]);
+  }, [usuario?.id, token]);
 
   useFocusEffect(
     useCallback(() => {
       cargar();
     }, [cargar]),
   );
+
+  if (!usuario) {
+    return <View style={estilos.contenedor} />;
+  }
 
   return (
     <View style={estilos.contenedor}>

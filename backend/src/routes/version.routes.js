@@ -6,9 +6,9 @@ const router = express.Router();
 // Store), este valor se actualiza a mano cada vez que se genera un build nuevo en EAS: subir
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
-  version: '1.0.1',
-  url: 'https://expo.dev/artifacts/eas/BDSHzbn6rC7TaSNp_Ife3Y2rktOpnf15i9DU0COIt54.apk',
-  notas: 'Edición de torneos ya creados y nuevo diseño en el detalle de partidos.',
+  version: '1.0.2',
+  url: 'PENDIENTE_ACTUALIZAR_TRAS_BUILD',
+  notas: 'Corrige un cierre forzoso de la app al cerrar sesión, y agrega la búsqueda de actualizaciones.',
 };
 
 // GET /version — pública, la consulta la app para saber si hay un APK más nuevo disponible.

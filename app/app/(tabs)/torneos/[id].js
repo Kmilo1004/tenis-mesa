@@ -59,7 +59,7 @@ export default function DetalleTorneo() {
     }, [cargar]),
   );
 
-  if (cargando || !torneo) {
+  if (cargando || !torneo || !usuario) {
     return (
       <View style={estilos.centrado}>
         <ActivityIndicator />
