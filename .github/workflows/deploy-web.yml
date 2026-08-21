@@ -1,5 +1,6 @@
 name: Publicar versión web en GitHub Pages
 
+# GitHub Pages ya está habilitado en Settings > Pages con source "GitHub Actions".
 on:
   push:
     branches: [master]
