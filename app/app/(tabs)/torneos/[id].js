@@ -142,6 +142,16 @@ export default function DetalleTorneo() {
           </Pressable>
         )}
 
+        {esAdmin && (
+          <Pressable
+            style={estilos.botonAdmin}
+            onPress={() => router.push(`/torneos/editar?torneoId=${id}`)}
+            disabled={enviando}
+          >
+            <Text style={estilos.botonAdminTexto}>Editar torneo</Text>
+          </Pressable>
+        )}
+
         {esAdmin && inscripcionesAbiertas && (
           <Pressable style={estilos.botonAdmin} onPress={cerrarInscripciones} disabled={enviando}>
             <Text style={estilos.botonAdminTexto}>Cerrar inscripciones</Text>

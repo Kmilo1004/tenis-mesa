@@ -15,6 +15,7 @@ export default function LayoutTorneos() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="nuevo" options={{ title: 'Nuevo torneo', presentation: 'modal' }} />
       <Stack.Screen name="[id]" options={{ title: 'Torneo' }} />
+      <Stack.Screen name="editar" options={{ title: 'Editar torneo', presentation: 'modal' }} />
       <Stack.Screen name="invitado" options={{ title: 'Agregar invitado', presentation: 'modal' }} />
     </Stack>
   );

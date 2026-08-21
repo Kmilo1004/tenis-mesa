@@ -135,15 +135,33 @@ router.patch('/torneos/:id', verificarToken, requiereRol('administrador'), async
       return res.status(404).json({ error: 'Torneo no encontrado' });
     }
 
-    const { nombre, formato, fechaInicio, fechaFin, fechaLimiteInscripcion, numeroGrupos, metodoAsignacionGrupos, clasificadosPorGrupo } =
-      req.body;
+    const {
+      nombre,
+      tipo,
+      alcance,
+      formato,
+      fechaInicio,
+      fechaFin,
+      fechaLimiteInscripcion,
+      numeroGrupos,
+      metodoAsignacionGrupos,
+      clasificadosPorGrupo,
+    } = req.body;
 
+    if (tipo !== undefined && !TIPOS_VALIDOS.includes(tipo)) {
+      return res.status(400).json({ error: `tipo debe ser uno de: ${TIPOS_VALIDOS.join(', ')}` });
+    }
+    if (alcance !== undefined && !ALCANCES_VALIDOS.includes(alcance)) {
+      return res.status(400).json({ error: `alcance debe ser uno de: ${ALCANCES_VALIDOS.join(', ')}` });
+    }
     if (formato !== undefined && !FORMATOS_VALIDOS.includes(formato)) {
       return res.status(400).json({ error: `formato debe ser uno de: ${FORMATOS_VALIDOS.join(', ')}` });
     }
 
     const data = {};
     if (nombre !== undefined) data.nombre = nombre;
+    if (tipo !== undefined) data.tipo = tipo;
+    if (alcance !== undefined) data.alcance = alcance;
     if (formato !== undefined) data.formato = formato;
 
     for (const [campo, valor] of Object.entries({ fechaInicio, fechaFin, fechaLimiteInscripcion })) {

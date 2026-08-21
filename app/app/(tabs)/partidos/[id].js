@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
 import EditorSets, { setsIniciales, setsCompletos } from '../../../src/components/EditorSets';
+import { colores, radios } from '../../../src/theme/colores';
 
 const MOTIVOS = [
   { valor: 'marcador_incorrecto', etiqueta: 'El marcador es incorrecto' },
@@ -11,6 +13,15 @@ const MOTIVOS = [
   { valor: 'rival_equivocado', etiqueta: 'El rival está equivocado' },
 ];
 const MOTIVOS_TEXTO = Object.fromEntries(MOTIVOS.map((m) => [m.valor, m.etiqueta]));
+
+const ETIQUETAS_ESTADO = {
+  pendiente: { texto: 'Pendiente de confirmar', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  confirmado: { texto: 'Confirmado', color: colores.exito, fondo: colores.exitoFondo },
+  descartado: { texto: 'Descartado', color: colores.textoSecundario, fondo: colores.gris },
+  en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
+  anulado: { texto: 'Anulado', color: colores.error, fondo: colores.errorFondo },
+  por_definir: { texto: 'Por definir', color: colores.textoSecundario, fondo: colores.gris },
+};
 
 export default function DetallePartido() {
   const { id } = useLocalSearchParams();
@@ -49,7 +60,7 @@ export default function DetallePartido() {
   if (cargando || !partido) {
     return (
       <View style={estilos.centrado}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colores.navy} />
       </View>
     );
   }
@@ -63,6 +74,7 @@ export default function DetallePartido() {
   const esAdmin = usuario.roles?.some((r) => r.rol === 'administrador');
   const puedoResolverDisputa = esAdmin && partido.estado === 'en_revision';
   const puedoAdministrarResultado = esAdmin && partido.estado === 'confirmado';
+  const etiquetaEstado = ETIQUETAS_ESTADO[partido.estado] || ETIQUETAS_ESTADO.por_definir;
 
   async function confirmar() {
     setEnviando(true);
@@ -179,30 +191,47 @@ export default function DetallePartido() {
 
   return (
     <ScrollView contentContainerStyle={estilos.contenedor}>
-      <Text style={estilos.titulo}>vs {rival?.nombre || 'Por definir'}</Text>
-      {esPartidoTorneo && <Text style={estilos.torneoTag}>{partido.ronda || 'Fase de grupos'}</Text>}
-      <Text style={estilos.fecha}>{new Date(partido.fechaPartido).toLocaleString('es-CO')}</Text>
-      <Text style={estilos.estado}>{partido.estado.replace('_', ' ')}</Text>
+      <View style={estilos.tarjetaPrincipal}>
+        <View style={[estilos.badge, { backgroundColor: etiquetaEstado.fondo, alignSelf: 'center' }]}>
+          <Text style={[estilos.badgeTexto, { color: etiquetaEstado.color }]}>{etiquetaEstado.texto}</Text>
+        </View>
 
-      {partido.estado === 'por_definir' && (
-        <Text style={estilos.avisoTexto}>Todavía no se conocen ambos jugadores de este partido.</Text>
-      )}
+        <Text style={estilos.titulo}>vs {rival?.nombre || 'Por definir'}</Text>
+        {esPartidoTorneo && <Text style={estilos.torneoTag}>{partido.ronda || 'Fase de grupos'}</Text>}
+        <View style={estilos.filaFecha}>
+          <Ionicons name="calendar-outline" size={13} color={colores.textoSecundario} />
+          <Text style={estilos.fecha}>{new Date(partido.fechaPartido).toLocaleString('es-CO')}</Text>
+        </View>
 
-      <View style={estilos.marcador}>
-        {partido.sets.map((s) => (
-          <View key={s.id} style={estilos.set}>
-            <Text style={estilos.setPuntos}>{soyJugadorA ? s.puntosJugadorA : s.puntosJugadorB}</Text>
-            <Text style={estilos.setGuion}>-</Text>
-            <Text style={estilos.setPuntos}>{soyJugadorA ? s.puntosJugadorB : s.puntosJugadorA}</Text>
+        {partido.estado === 'por_definir' && (
+          <Text style={estilos.avisoTexto}>Todavía no se conocen ambos jugadores de este partido.</Text>
+        )}
+
+        {partido.sets.length > 0 && (
+          <View style={estilos.marcador}>
+            {partido.sets.map((s, i) => {
+              const misPuntos = soyJugadorA ? s.puntosJugadorA : s.puntosJugadorB;
+              const puntosRival = soyJugadorA ? s.puntosJugadorB : s.puntosJugadorA;
+              const gane = misPuntos > puntosRival;
+              return (
+                <View key={s.id} style={[estilos.set, gane && estilos.setGanado]}>
+                  <Text style={estilos.setNumero}>Set {i + 1}</Text>
+                  <Text style={[estilos.setPuntos, gane && estilos.setPuntosGanado]}>{misPuntos}</Text>
+                  <Text style={estilos.setGuion}>-</Text>
+                  <Text style={estilos.setPuntos}>{puntosRival}</Text>
+                </View>
+              );
+            })}
           </View>
-        ))}
-      </View>
+        )}
 
-      {partido.ganador && (
-        <Text style={estilos.ganador}>
-          Ganó: {partido.ganador.id === usuario.id ? 'Tú' : partido.ganador.nombre}
-        </Text>
-      )}
+        {partido.ganador && (
+          <View style={estilos.filaGanador}>
+            <Ionicons name="trophy" size={16} color={colores.navy} />
+            <Text style={estilos.ganador}>Ganó: {partido.ganador.id === usuario.id ? 'Tú' : partido.ganador.nombre}</Text>
+          </View>
+        )}
+      </View>
 
       {partido.estado === 'en_revision' && (
         <View style={estilos.avisoDisputa}>
@@ -228,7 +257,7 @@ export default function DetallePartido() {
       {puedoResponder && !mostrarDisputa && (
         <View style={estilos.acciones}>
           <Pressable style={estilos.boton} onPress={confirmar} disabled={enviando}>
-            {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Confirmar resultado</Text>}
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Confirmar resultado</Text>}
           </Pressable>
           <Pressable style={estilos.botonSecundario} onPress={() => setMostrarDisputa(true)} disabled={enviando}>
             <Text style={estilos.botonSecundarioTexto}>Disputar resultado</Text>
@@ -237,7 +266,7 @@ export default function DetallePartido() {
       )}
 
       {puedoResponder && mostrarDisputa && (
-        <View style={estilos.formularioDisputa}>
+        <View style={estilos.tarjeta}>
           <Text style={estilos.etiqueta}>¿Cuál es el problema?</Text>
           {MOTIVOS.map((m) => (
             <Pressable
@@ -254,12 +283,13 @@ export default function DetallePartido() {
             style={estilos.textarea}
             multiline
             placeholder="Cuéntale al administrador qué pasó..."
+            placeholderTextColor={colores.textoSecundario}
             value={comentario}
             onChangeText={setComentario}
           />
 
           <Pressable style={estilos.boton} onPress={disputar} disabled={!motivo || enviando}>
-            {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Enviar disputa</Text>}
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Enviar disputa</Text>}
           </Pressable>
           <Pressable onPress={() => setMostrarDisputa(false)}>
             <Text style={estilos.cancelar}>Cancelar</Text>
@@ -268,7 +298,7 @@ export default function DetallePartido() {
       )}
 
       {puedoReportarResultado && (
-        <View style={estilos.formularioDisputa}>
+        <View style={estilos.tarjeta}>
           <Text style={estilos.etiqueta}>Marcador por set</Text>
           <EditorSets
             sets={setsResultado}
@@ -278,13 +308,13 @@ export default function DetallePartido() {
           />
 
           <Pressable style={estilos.boton} onPress={reportarResultado} disabled={!setsCompletos(setsResultado) || enviando}>
-            {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Registrar resultado</Text>}
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Registrar resultado</Text>}
           </Pressable>
         </View>
       )}
 
       {puedoResolverDisputa && (
-        <View style={estilos.panelAdmin}>
+        <View style={estilos.tarjeta}>
           <Text style={estilos.etiqueta}>Resolver disputa</Text>
           <Pressable style={estilos.boton} onPress={() => resolverDisputa('confirmar_original')} disabled={enviando}>
             <Text style={estilos.botonTexto}>Confirmar marcador original</Text>
@@ -301,7 +331,7 @@ export default function DetallePartido() {
       )}
 
       {puedoAdministrarResultado && !mostrarEdicion && (
-        <View style={estilos.panelAdmin}>
+        <View style={estilos.tarjeta}>
           <Text style={estilos.etiqueta}>Panel de administración</Text>
           <Pressable style={estilos.botonAdmin} onPress={abrirEdicion} disabled={enviando}>
             <Text style={estilos.botonAdminTexto}>Editar resultado</Text>
@@ -313,7 +343,7 @@ export default function DetallePartido() {
       )}
 
       {puedoAdministrarResultado && mostrarEdicion && (
-        <View style={estilos.panelAdmin}>
+        <View style={estilos.tarjeta}>
           <Text style={estilos.etiqueta}>Nuevo marcador</Text>
           <EditorSets
             sets={setsEdicion}
@@ -322,14 +352,20 @@ export default function DetallePartido() {
             etiquetaB={partido.jugadorB?.nombre || 'Jugador B'}
           />
           <Text style={[estilos.etiqueta, { marginTop: 8 }]}>Motivo del cambio (opcional)</Text>
-          <TextInput style={estilos.textarea} multiline value={motivoAdmin} onChangeText={setMotivoAdmin} />
+          <TextInput
+            style={estilos.textarea}
+            multiline
+            placeholderTextColor={colores.textoSecundario}
+            value={motivoAdmin}
+            onChangeText={setMotivoAdmin}
+          />
 
           <View style={estilos.filaBotonesFormulario}>
             <Pressable onPress={() => setMostrarEdicion(false)} disabled={enviando}>
               <Text style={estilos.cancelar}>Cancelar</Text>
             </Pressable>
             <Pressable style={[estilos.boton, { flex: 1 }]} onPress={guardarEdicion} disabled={!setsCompletos(setsEdicion) || enviando}>
-              {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Guardar cambios</Text>}
+              {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Guardar cambios</Text>}
             </Pressable>
           </View>
         </View>
@@ -339,37 +375,80 @@ export default function DetallePartido() {
 }
 
 const estilos = StyleSheet.create({
-  centrado: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  contenedor: { padding: 24, alignItems: 'center' },
-  titulo: { fontSize: 22, fontWeight: '700' },
-  torneoTag: { color: '#0B1E4D', fontWeight: '600', marginTop: 4, fontSize: 13 },
-  avisoTexto: { color: '#888', marginTop: 12, textAlign: 'center' },
-  fecha: { color: '#666', marginTop: 4 },
-  estado: { color: '#0B1E4D', fontWeight: '600', marginTop: 8, textTransform: 'capitalize' },
-  marcador: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  set: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', padding: 10, borderRadius: 8 },
-  setPuntos: { fontSize: 16, fontWeight: '700', width: 20, textAlign: 'center' },
-  setGuion: { marginHorizontal: 2, color: '#999' },
-  ganador: { marginTop: 16, fontWeight: '600' },
-  avisoDisputa: { marginTop: 16, backgroundColor: '#f3e8ff', padding: 12, borderRadius: 8, width: '100%' },
-  avisoDisputaTexto: { color: '#7e22ce', fontSize: 13 },
-  avisoDisputaDetalle: { color: '#6b21a8', fontSize: 12, marginTop: 4 },
-  error: { color: '#dc2626', marginTop: 12, textAlign: 'center' },
-  acciones: { width: '100%', marginTop: 32, gap: 10 },
-  boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
-  botonTexto: { color: '#fff', fontWeight: '700' },
+  centrado: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.fondo },
+  contenedor: { padding: 16, paddingBottom: 48 },
+  tarjetaPrincipal: {
+    backgroundColor: colores.tarjeta,
+    borderRadius: radios.tarjeta,
+    padding: 20,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  tarjeta: {
+    backgroundColor: colores.tarjeta,
+    borderRadius: radios.tarjeta,
+    padding: 20,
+    marginTop: 14,
+    width: '100%',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: radios.pildora, marginBottom: 12 },
+  badgeTexto: { fontSize: 12, fontWeight: '700' },
+  titulo: { fontSize: 22, fontWeight: '800', color: colores.texto, textAlign: 'center' },
+  torneoTag: { color: colores.navy, fontWeight: '700', marginTop: 6, fontSize: 12 },
+  avisoTexto: { color: colores.textoSecundario, marginTop: 12, textAlign: 'center' },
+  filaFecha: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  fecha: { color: colores.textoSecundario, fontSize: 12 },
+  marcador: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24, justifyContent: 'center' },
+  set: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colores.gris,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  setGanado: { backgroundColor: colores.exitoFondo },
+  setNumero: { fontSize: 11, color: colores.textoSecundario, marginRight: 4 },
+  setPuntos: { fontSize: 17, fontWeight: '700', color: colores.texto, width: 20, textAlign: 'center' },
+  setPuntosGanado: { color: colores.exito },
+  setGuion: { color: colores.textoSecundario },
+  filaGanador: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18 },
+  ganador: { fontWeight: '700', color: colores.texto },
+  avisoDisputa: { marginTop: 14, backgroundColor: colores.infoFondo, padding: 14, borderRadius: radios.tarjeta, width: '100%' },
+  avisoDisputaTexto: { color: colores.info, fontSize: 13, fontWeight: '600' },
+  avisoDisputaDetalle: { color: colores.info, fontSize: 12, marginTop: 4 },
+  error: { color: colores.error, marginTop: 12, textAlign: 'center' },
+  acciones: { width: '100%', marginTop: 20, gap: 10 },
+  boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
+  botonTexto: { color: colores.textoClaro, fontWeight: '700' },
   botonSecundario: { paddingVertical: 12, alignItems: 'center' },
-  botonSecundarioTexto: { color: '#dc2626', fontWeight: '600' },
-  formularioDisputa: { width: '100%', marginTop: 24 },
-  etiqueta: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 8 },
-  opcionMotivo: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 8 },
-  opcionMotivoActiva: { borderColor: '#0B1E4D', backgroundColor: '#eff6ff' },
-  opcionMotivoTexto: { color: '#333' },
-  opcionMotivoTextoActivo: { color: '#0B1E4D', fontWeight: '600' },
-  textarea: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, minHeight: 80, textAlignVertical: 'top' },
-  cancelar: { textAlign: 'center', color: '#666', marginTop: 12 },
-  panelAdmin: { width: '100%', marginTop: 28, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#eee' },
-  botonAdmin: { borderWidth: 1, borderColor: '#0B1E4D', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-  botonAdminTexto: { color: '#0B1E4D', fontWeight: '600' },
+  botonSecundarioTexto: { color: colores.error, fontWeight: '600' },
+  etiqueta: { fontSize: 13, fontWeight: '700', color: colores.texto, marginBottom: 10 },
+  opcionMotivo: { borderWidth: 1, borderColor: colores.borde, borderRadius: 10, padding: 12, marginBottom: 8 },
+  opcionMotivoActiva: { borderColor: colores.navy, backgroundColor: colores.fondo },
+  opcionMotivoTexto: { color: colores.texto },
+  opcionMotivoTextoActivo: { color: colores.navy, fontWeight: '600' },
+  textarea: {
+    borderWidth: 1,
+    borderColor: colores.borde,
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    color: colores.texto,
+  },
+  cancelar: { textAlign: 'center', color: colores.textoSecundario, marginTop: 12 },
+  botonAdmin: { borderWidth: 1, borderColor: colores.navy, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  botonAdminTexto: { color: colores.navy, fontWeight: '600' },
   filaBotonesFormulario: { flexDirection: 'row', gap: 16, alignItems: 'center', marginTop: 16 },
 });
