@@ -7,7 +7,7 @@ const router = express.Router();
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
   version: '1.0.2',
-  url: 'PENDIENTE_ACTUALIZAR_TRAS_BUILD',
+  url: 'https://expo.dev/artifacts/eas/RDC3tG6CiFKru0kQQ1bloQS-sxVtltCVNCTcCpaG_Xc.apk',
   notas: 'Corrige un cierre forzoso de la app al cerrar sesión, y agrega la búsqueda de actualizaciones.',
 };
 
