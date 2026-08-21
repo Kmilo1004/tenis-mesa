@@ -47,7 +47,7 @@ export default function AgregarInvitado() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={estilos.contenedor}>
         <Text style={estilos.subtitulo}>
           Crea un perfil ligero para un jugador invitado (sin correo ni contraseña) y lo inscribe en este torneo.

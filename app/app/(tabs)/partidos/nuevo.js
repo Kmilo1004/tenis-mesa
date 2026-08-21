@@ -70,7 +70,7 @@ export default function NuevoPartido() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={estilos.contenedor}>
         <Text style={estilos.etiqueta}>Rival</Text>
         {rival ? (

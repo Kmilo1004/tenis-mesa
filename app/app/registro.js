@@ -46,7 +46,7 @@ export default function Registro() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={estilos.contenedor}>
         <Stack.Screen options={{ title: 'Crear cuenta' }} />
         <Text style={estilos.titulo}>Crear cuenta</Text>

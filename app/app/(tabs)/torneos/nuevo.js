@@ -65,7 +65,7 @@ export default function NuevoTorneo() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={estilos.contenedor}>
         <CampoTexto etiqueta="Nombre del torneo" placeholder="Flash de agosto" value={nombre} onChangeText={setNombre} />
 

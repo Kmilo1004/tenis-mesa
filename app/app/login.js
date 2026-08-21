@@ -26,7 +26,7 @@ export default function Login() {
   }
 
   return (
-    <KeyboardAvoidingView style={estilos.fondo} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={estilos.fondo} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={estilos.contenedor}>
         <Image source={require('../assets/Logo.jpeg')} style={estilos.logo} />
