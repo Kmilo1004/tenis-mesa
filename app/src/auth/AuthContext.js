@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { apiFetch } from '../api/client';
 import { guardarCache, leerCache } from '../lib/cache';
+import { obtenerToken, guardarToken, eliminarToken } from '../lib/almacenToken';
 
 const CLAVE_TOKEN = 'tenismesa_token';
 const CLAVE_CACHE_PERFIL = 'perfil';
@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
   const [sinConexion, setSinConexion] = useState(false);
 
   const cargarSesion = useCallback(async () => {
-    const tokenGuardado = await SecureStore.getItemAsync(CLAVE_TOKEN);
+    const tokenGuardado = await obtenerToken(CLAVE_TOKEN);
     if (!tokenGuardado) {
       setCargando(false);
       return;
@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
         }
       } else {
         // el servidor sí respondió: el token está vencido o es inválido
-        await SecureStore.deleteItemAsync(CLAVE_TOKEN);
+        await eliminarToken(CLAVE_TOKEN);
       }
     } finally {
       setCargando(false);
@@ -54,7 +54,7 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: JSON.stringify({ correo, password }),
     });
-    await SecureStore.setItemAsync(CLAVE_TOKEN, datos.token);
+    await guardarToken(CLAVE_TOKEN, datos.token);
     setToken(datos.token);
     setUsuario(datos.usuario);
     setSinConexion(false);
@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: JSON.stringify(campos),
     });
-    await SecureStore.setItemAsync(CLAVE_TOKEN, datos.token);
+    await guardarToken(CLAVE_TOKEN, datos.token);
     setToken(datos.token);
     setUsuario(datos.usuario);
     setSinConexion(false);
@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
   }
 
   async function cerrarSesion() {
-    await SecureStore.deleteItemAsync(CLAVE_TOKEN);
+    await eliminarToken(CLAVE_TOKEN);
     setToken(null);
     setUsuario(null);
   }

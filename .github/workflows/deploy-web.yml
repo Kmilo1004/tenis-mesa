@@ -1,0 +1,71 @@
+name: Publicar versión web en GitHub Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "app/**"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias
+        run: npm install
+
+      # GitHub Pages sirve este proyecto bajo /tenis-mesa/ (no en la raíz del dominio), así que
+      # todos los bundles/assets deben generarse con ese subpath. No se guarda en app.json para
+      # no afectar el desarrollo local ni los builds nativos (EAS).
+      - name: Configurar subpath de GitHub Pages
+        run: |
+          node -e "
+            const fs = require('fs');
+            const j = JSON.parse(fs.readFileSync('app.json'));
+            j.expo.experiments = { ...(j.expo.experiments || {}), baseUrl: '/tenis-mesa' };
+            fs.writeFileSync('app.json', JSON.stringify(j, null, 2));
+          "
+
+      - name: Exportar build web
+        run: npx expo export --platform web --output-dir dist
+
+      # SPA: GitHub Pages no sabe de las rutas de expo-router (/torneos/5, etc). Al copiar
+      # index.html como 404.html, cualquier ruta desconocida sirve la misma app y el router
+      # del lado del cliente toma el control desde la URL.
+      - name: Preparar fallback para rutas del cliente
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
