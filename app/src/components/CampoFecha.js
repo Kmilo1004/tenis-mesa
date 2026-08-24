@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { normalizarHora } from '../lib/fechas';
 
-export default function CampoFecha({ etiqueta, valor, onCambiar, minimo }) {
+export default function CampoFecha({ etiqueta, valor, onCambiar, minimo, modo = 'inicio' }) {
   const [mostrar, setMostrar] = useState(false);
 
   function manejarCambio(evento, fechaSeleccionada) {
@@ -10,7 +11,7 @@ export default function CampoFecha({ etiqueta, valor, onCambiar, minimo }) {
       setMostrar(false);
     }
     if (fechaSeleccionada) {
-      onCambiar(fechaSeleccionada);
+      onCambiar(normalizarHora(fechaSeleccionada, modo));
     }
   }
 

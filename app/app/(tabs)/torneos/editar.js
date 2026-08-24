@@ -109,9 +109,14 @@ export default function EditarTorneo() {
         <SelectorOpciones etiqueta="Alcance" opciones={ALCANCES} valor={alcance} onCambiar={setAlcance} />
         <SelectorOpciones etiqueta="Formato" opciones={FORMATOS} valor={formato} onCambiar={setFormato} />
 
-        <CampoFecha etiqueta="Fecha de inicio" valor={fechaInicio} onCambiar={setFechaInicio} />
-        <CampoFecha etiqueta="Fecha de fin" valor={fechaFin} onCambiar={setFechaFin} minimo={fechaInicio} />
-        <CampoFecha etiqueta="Fecha límite de inscripción" valor={fechaLimiteInscripcion} onCambiar={setFechaLimiteInscripcion} />
+        <CampoFecha etiqueta="Fecha de inicio" valor={fechaInicio} onCambiar={setFechaInicio} modo="inicio" />
+        <CampoFecha etiqueta="Fecha de fin" valor={fechaFin} onCambiar={setFechaFin} minimo={fechaInicio} modo="fin" />
+        <CampoFecha
+          etiqueta="Fecha límite de inscripción"
+          valor={fechaLimiteInscripcion}
+          onCambiar={setFechaLimiteInscripcion}
+          modo="fin"
+        />
 
         {error && <Text style={estilos.error}>{error}</Text>}
 

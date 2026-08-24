@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { normalizarHora } from '../lib/fechas';
 
 // @react-native-community/datetimepicker no tiene implementación para web (renderiza null con un
 // warning). Expo Router elige este archivo automáticamente en el build web en vez de
@@ -11,12 +12,12 @@ function aTextoISO(fecha) {
   return `${y}-${m}-${d}`;
 }
 
-export default function CampoFecha({ etiqueta, valor, onCambiar, minimo }) {
+export default function CampoFecha({ etiqueta, valor, onCambiar, minimo, modo = 'inicio' }) {
   function manejarCambio(evento) {
     const texto = evento.target.value;
     if (!texto) return;
     const [y, m, d] = texto.split('-').map(Number);
-    onCambiar(new Date(y, m - 1, d));
+    onCambiar(normalizarHora(new Date(y, m - 1, d), modo));
   }
 
   return (
