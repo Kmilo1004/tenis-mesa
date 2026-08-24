@@ -30,11 +30,23 @@ router.get('/reportes/ranking', verificarToken, requiereRol('administrador'), as
       select: { nombre: true, [campoElo]: true },
     });
 
-    const filas = usuarios.map((u, i) => ({ posicion: i + 1, nombre: u.nombre, elo: u[campoElo] }));
+    const COLOR_MEDALLA = { 0: '#CA8A04', 1: '#71717A', 2: '#B45309' }; // oro, plata, bronce
+
+    const filas = usuarios.map((u, i) => {
+      const posicion = i + 1;
+      const colorMedalla = COLOR_MEDALLA[i];
+      return {
+        posicion: colorMedalla
+          ? { text: String(posicion), textColor: colorMedalla, font: { family: 'Helvetica-Bold' } }
+          : posicion,
+        nombre: u.nombre,
+        elo: u[campoElo],
+      };
+    });
     const columnas = [
-      { clave: 'posicion', titulo: 'Posición' },
+      { clave: 'posicion', titulo: 'Posición', align: 'center' },
       { clave: 'nombre', titulo: 'Jugador' },
-      { clave: 'elo', titulo: 'ELO' },
+      { clave: 'elo', titulo: 'ELO', align: 'right' },
     ];
 
     return responderReporte(res, formato, {
@@ -83,9 +95,9 @@ router.get('/reportes/torneo/:id', verificarToken, requiereRol('administrador'),
       { clave: 'etapa', titulo: 'Etapa' },
       { clave: 'jugadorA', titulo: 'Jugador A' },
       { clave: 'jugadorB', titulo: 'Jugador B' },
-      { clave: 'marcador', titulo: 'Marcador' },
+      { clave: 'marcador', titulo: 'Marcador', align: 'center' },
       { clave: 'ganador', titulo: 'Ganador' },
-      { clave: 'estado', titulo: 'Estado' },
+      { clave: 'estado', titulo: 'Estado', align: 'center' },
     ];
 
     return responderReporte(res, formato, {
