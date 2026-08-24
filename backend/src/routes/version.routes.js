@@ -6,9 +6,9 @@ const router = express.Router();
 // Store), este valor se actualiza a mano cada vez que se genera un build nuevo en EAS: subir
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
-  version: '1.0.3',
-  url: 'https://expo.dev/artifacts/eas/liFXTeM8e-FEk-WVgHsVwG1fJL4GeNbnQJwMhJCw9vk.apk',
-  notas: 'Agrega botón de mostrar/ocultar contraseña y corrige el teclado tapando los campos en Android.',
+  version: '1.0.5',
+  url: 'https://expo.dev/artifacts/eas/4N2H844VdkROAGbRa84WL9C1vOHFR2rtA77Zsw0Emys.apk',
+  notas: 'Gestión de roles, estadísticas por jugador, borrado de torneos, logo circular en el splash y reportes PDF rediseñados.',
 };
 
 // GET /version — pública, la consulta la app para saber si hay un APK más nuevo disponible.
