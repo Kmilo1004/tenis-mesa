@@ -1,14 +1,14 @@
 import { useCallback, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { apiFetch } from '../../src/api/client';
-import { useAuth } from '../../src/auth/AuthContext';
-import { guardarCache, leerCache } from '../../src/lib/cache';
-import AvisoSinConexion from '../../src/components/AvisoSinConexion';
-import EncabezadoApp from '../../src/components/EncabezadoApp';
-import Avatar from '../../src/components/Avatar';
-import { colores, radios } from '../../src/theme/colores';
+import { apiFetch } from '../../../src/api/client';
+import { useAuth } from '../../../src/auth/AuthContext';
+import { guardarCache, leerCache } from '../../../src/lib/cache';
+import AvisoSinConexion from '../../../src/components/AvisoSinConexion';
+import EncabezadoApp from '../../../src/components/EncabezadoApp';
+import Avatar from '../../../src/components/Avatar';
+import { colores, radios } from '../../../src/theme/colores';
 
 export default function Ranking() {
   const { usuario } = useAuth();
@@ -79,13 +79,16 @@ export default function Ranking() {
           ListHeaderComponent={sinConexion ? <AvisoSinConexion /> : null}
           ListEmptyComponent={<Text style={estilos.vacio}>Todavía no hay jugadores en este ranking</Text>}
           renderItem={({ item }) => (
-            <View style={[estilos.fila, item.id === usuario?.id && estilos.filaPropia]}>
+            <Pressable
+              style={[estilos.fila, item.id === usuario?.id && estilos.filaPropia]}
+              onPress={() => router.push(`/ranking/${item.id}`)}
+            >
               <Text style={estilos.posicion}>#{item.posicion}</Text>
               <Avatar nombre={item.nombre} tamano={38} />
               <Text style={estilos.nombre}>{item.nombre}</Text>
               <Text style={estilos.elo}>{tipo === 'oficial' ? item.eloOficial : item.eloNoOficial}</Text>
               <Ionicons name="chevron-forward" size={16} color={colores.textoSecundario} />
-            </View>
+            </Pressable>
           )}
         />
       )}

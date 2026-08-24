@@ -211,4 +211,5 @@ module.exports = {
   confirmarResultado,
   promoverAOficial,
   editarOAnularResultado,
+  revertirEloDePartido,
 };

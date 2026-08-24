@@ -5,6 +5,7 @@ const { crearPartidosDeCuadro } = require('../lib/cuadro.service');
 const { calcularTablaGrupo } = require('../lib/grupos.service');
 const { registrarAuditoria } = require('../lib/auditoria.service');
 const { notificarPartidoProximo } = require('../lib/notificaciones.service');
+const { revertirEloDePartido } = require('../lib/partidos.service');
 const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -203,6 +204,38 @@ router.patch('/torneos/:id', verificarToken, requiereRol('administrador'), async
     });
 
     return res.status(200).json(torneoActualizado);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// DELETE /torneos/{id} — solo admin. Revierte el efecto en el ranking de cualquier partido
+// confirmado del torneo (misma lógica que anular un partido) antes de borrar todo en cascada.
+router.delete('/torneos/:id', verificarToken, requiereRol('administrador'), async (req, res, next) => {
+  try {
+    const torneo = await prisma.torneo.findUnique({ where: { id: req.params.id } });
+    if (!torneo) {
+      return res.status(404).json({ error: 'Torneo no encontrado' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const partidos = await tx.partido.findMany({ where: { torneoId: torneo.id }, select: { id: true } });
+      for (const partido of partidos) {
+        await revertirEloDePartido(tx, partido.id);
+      }
+      await tx.partido.deleteMany({ where: { torneoId: torneo.id } });
+      await tx.torneo.delete({ where: { id: torneo.id } });
+    });
+
+    await registrarAuditoria(prisma, {
+      usuarioId: req.usuarioId,
+      accion: 'eliminar_torneo',
+      entidadTipo: 'torneo',
+      entidadId: torneo.id,
+      detalle: { nombre: torneo.nombre },
+    });
+
+    return res.status(204).send();
   } catch (error) {
     return next(error);
   }

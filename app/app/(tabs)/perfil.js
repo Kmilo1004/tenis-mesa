@@ -132,6 +132,12 @@ export default function Perfil() {
               <Text style={estilos.filaEnlaceTexto}>Ver log de auditoría</Text>
               <Ionicons name="chevron-forward" size={18} color={colores.textoSecundario} />
             </Pressable>
+            <View style={estilos.divisor} />
+            <Pressable style={estilos.filaEnlace} onPress={() => router.push('/gestionar-roles')}>
+              <Ionicons name="people-outline" size={20} color={colores.navy} />
+              <Text style={estilos.filaEnlaceTexto}>Gestionar roles</Text>
+              <Ionicons name="chevron-forward" size={18} color={colores.textoSecundario} />
+            </Pressable>
           </View>
         )}
 

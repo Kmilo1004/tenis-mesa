@@ -10,6 +10,7 @@ const {
   editarOAnularResultado,
 } = require('../lib/partidos.service');
 const { kTorneo } = require('../lib/elo');
+const { INCLUYE_JUGADORES } = require('../lib/partido.constants');
 const { registrarAuditoria } = require('../lib/auditoria.service');
 const { crearNotificacion } = require('../lib/notificaciones.service');
 const { verificarToken, requiereRol, obtenerRoles } = require('../middleware/auth.middleware');
@@ -18,13 +19,6 @@ const router = express.Router();
 
 const MOTIVOS_VALIDOS = ['marcador_incorrecto', 'no_jugado', 'rival_equivocado'];
 const RESOLUCIONES_VALIDAS = ['confirmar_original', 'aceptar_propuesto', 'anular'];
-
-const INCLUYE_JUGADORES = {
-  sets: true,
-  jugadorA: { select: { id: true, nombre: true } },
-  jugadorB: { select: { id: true, nombre: true } },
-  ganador: { select: { id: true, nombre: true } },
-};
 
 // POST /partidos — RF-05 a RF-08 (partido casual, Fase 2)
 router.post('/partidos', verificarToken, async (req, res, next) => {

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
@@ -91,6 +91,29 @@ export default function DetalleTorneo() {
   const cerrarInscripciones = () => accion(() => apiFetch(`/torneos/${id}/cerrar-inscripciones`, { method: 'POST', token }));
   const generarCuadro = () =>
     accion(() => apiFetch(`/torneos/${id}/cuadro/generar`, { method: 'POST', token, body: JSON.stringify({ siembra: 'aleatorio' }) }));
+
+  async function eliminarTorneo() {
+    setError(null);
+    setEnviando(true);
+    try {
+      await apiFetch(`/torneos/${id}`, { method: 'DELETE', token });
+      router.back();
+    } catch (err) {
+      setError(err.message);
+      setEnviando(false);
+    }
+  }
+
+  function confirmarEliminacion() {
+    Alert.alert(
+      '¿Eliminar este torneo?',
+      'Se borrarán sus inscripciones, grupos y partidos, y se revertirá el efecto que hayan tenido en el ranking. No se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: eliminarTorneo },
+      ],
+    );
+  }
 
   async function exportarResultados(formato) {
     setError(null);
@@ -184,6 +207,12 @@ export default function DetalleTorneo() {
             </Pressable>
           </View>
         )}
+
+        {esAdmin && (
+          <Pressable style={estilos.botonEliminar} onPress={confirmarEliminacion} disabled={enviando}>
+            <Text style={estilos.botonEliminarTexto}>Eliminar torneo</Text>
+          </Pressable>
+        )}
       </View>
 
       <Text style={estilos.subtitulo}>Inscritos ({inscritos.length})</Text>
@@ -238,6 +267,8 @@ const estilos = StyleSheet.create({
   botonAdmin: { borderWidth: 1, borderColor: '#0B1E4D', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   botonAdminTexto: { color: '#0B1E4D', fontWeight: '600' },
   filaExportar: { flexDirection: 'row', gap: 10 },
+  botonEliminar: { borderWidth: 1, borderColor: '#dc2626', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  botonEliminarTexto: { color: '#dc2626', fontWeight: '600' },
   subtitulo: { alignSelf: 'flex-start', fontWeight: '600', marginTop: 28, marginBottom: 8 },
   vacio: { color: '#888', fontSize: 13, alignSelf: 'flex-start' },
   filaInscrito: {
