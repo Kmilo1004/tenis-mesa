@@ -1,24 +1,27 @@
 import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
 import SeccionGrupos from '../../../src/components/SeccionGrupos';
+import Avatar from '../../../src/components/Avatar';
 import { descargarYCompartir } from '../../../src/lib/exportar';
+import { colores, radios } from '../../../src/theme/colores';
 
-const NOMBRE_ESTADO = {
-  inscripciones_abiertas: 'Inscripciones abiertas',
-  inscripciones_cerradas: 'Inscripciones cerradas',
-  en_curso: 'En curso',
-  finalizado: 'Finalizado',
+const ETIQUETAS_ESTADO = {
+  inscripciones_abiertas: { texto: 'Inscripciones abiertas', color: colores.exito, fondo: colores.exitoFondo },
+  inscripciones_cerradas: { texto: 'Inscripciones cerradas', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  en_curso: { texto: 'En curso', color: colores.acento, fondo: '#DBEAFE' },
+  finalizado: { texto: 'Finalizado', color: colores.textoSecundario, fondo: colores.gris },
 };
 
 const ETIQUETAS_ESTADO_PARTIDO = {
-  por_definir: 'Por definir',
-  pendiente: 'Pendiente de jugarse',
-  confirmado: 'Confirmado',
-  en_revision: 'En revisión',
-  anulado: 'Anulado',
+  por_definir: { texto: 'Por definir', color: colores.textoSecundario, fondo: colores.gris },
+  pendiente: { texto: 'Pendiente', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  confirmado: { texto: 'Confirmado', color: colores.exito, fondo: colores.exitoFondo },
+  en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
+  anulado: { texto: 'Anulado', color: colores.error, fondo: colores.errorFondo },
 };
 
 export default function DetalleTorneo() {
@@ -62,7 +65,7 @@ export default function DetalleTorneo() {
   if (cargando || !torneo || !usuario) {
     return (
       <View style={estilos.centrado}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colores.navy} />
       </View>
     );
   }
@@ -72,6 +75,7 @@ export default function DetalleTorneo() {
   const puedoRetirarme = estoyInscrito && ['inscripciones_abiertas', 'inscripciones_cerradas'].includes(torneo.estado);
   const puedoGenerarCuadro =
     esAdmin && torneo.formato === 'eliminacion_directa' && torneo.estado === 'inscripciones_cerradas' && cuadro.length === 0;
+  const etiquetaEstado = ETIQUETAS_ESTADO[torneo.estado];
 
   async function accion(fn) {
     setError(null);
@@ -140,22 +144,39 @@ export default function DetalleTorneo() {
 
   return (
     <ScrollView contentContainerStyle={estilos.contenedor}>
-      <Text style={estilos.nombre}>{torneo.nombre}</Text>
-      <Text style={estilos.detalle}>
-        {torneo.tipo === 'oficial' ? 'Oficial' : 'Flash'} · {torneo.alcance === 'abierto' ? 'Abierto' : 'Interno'} ·{' '}
-        {torneo.formato.replace('_', ' ')}
-      </Text>
-      <Text style={estilos.estado}>{NOMBRE_ESTADO[torneo.estado]}</Text>
-      <Text style={estilos.fecha}>
-        {new Date(torneo.fechaInicio).toLocaleDateString('es-CO')} — {new Date(torneo.fechaFin).toLocaleDateString('es-CO')}
-      </Text>
+      <View style={estilos.tarjetaPrincipal}>
+        <View style={[estilos.badge, { backgroundColor: etiquetaEstado.fondo, alignSelf: 'center' }]}>
+          <Text style={[estilos.badgeTexto, { color: etiquetaEstado.color }]}>{etiquetaEstado.texto}</Text>
+        </View>
+
+        <Text style={estilos.nombre}>{torneo.nombre}</Text>
+
+        <View style={estilos.filaChips}>
+          <View style={estilos.chip}>
+            <Text style={estilos.chipTexto}>{torneo.tipo === 'oficial' ? 'Oficial' : 'Flash'}</Text>
+          </View>
+          <View style={estilos.chip}>
+            <Text style={estilos.chipTexto}>{torneo.alcance === 'abierto' ? 'Abierto' : 'Interno'}</Text>
+          </View>
+          <View style={estilos.chip}>
+            <Text style={estilos.chipTexto}>{torneo.formato.replace(/_/g, ' ')}</Text>
+          </View>
+        </View>
+
+        <View style={estilos.filaFecha}>
+          <Ionicons name="calendar-outline" size={13} color={colores.textoSecundario} />
+          <Text style={estilos.fecha}>
+            {new Date(torneo.fechaInicio).toLocaleDateString('es-CO')} — {new Date(torneo.fechaFin).toLocaleDateString('es-CO')}
+          </Text>
+        </View>
+      </View>
 
       {error && <Text style={estilos.error}>{error}</Text>}
 
       <View style={estilos.acciones}>
         {inscripcionesAbiertas && !estoyInscrito && (
           <Pressable style={estilos.boton} onPress={inscribirme} disabled={enviando}>
-            {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Inscribirme</Text>}
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Inscribirme</Text>}
           </Pressable>
         )}
 
@@ -166,11 +187,7 @@ export default function DetalleTorneo() {
         )}
 
         {esAdmin && (
-          <Pressable
-            style={estilos.botonAdmin}
-            onPress={() => router.push(`/torneos/editar?torneoId=${id}`)}
-            disabled={enviando}
-          >
+          <Pressable style={estilos.botonAdmin} onPress={() => router.push(`/torneos/editar?torneoId=${id}`)} disabled={enviando}>
             <Text style={estilos.botonAdminTexto}>Editar torneo</Text>
           </Pressable>
         )}
@@ -183,16 +200,12 @@ export default function DetalleTorneo() {
 
         {puedoGenerarCuadro && (
           <Pressable style={estilos.botonAdmin} onPress={generarCuadro} disabled={enviando}>
-            {enviando ? <ActivityIndicator color="#0B1E4D" /> : <Text style={estilos.botonAdminTexto}>Generar cuadro</Text>}
+            {enviando ? <ActivityIndicator color={colores.navy} /> : <Text style={estilos.botonAdminTexto}>Generar cuadro</Text>}
           </Pressable>
         )}
 
         {esAdmin && torneo.alcance === 'abierto' && (
-          <Pressable
-            style={estilos.botonAdmin}
-            onPress={() => router.push(`/torneos/invitado?torneoId=${id}`)}
-            disabled={enviando}
-          >
+          <Pressable style={estilos.botonAdmin} onPress={() => router.push(`/torneos/invitado?torneoId=${id}`)} disabled={enviando}>
             <Text style={estilos.botonAdminTexto}>Agregar invitado</Text>
           </Pressable>
         )}
@@ -200,10 +213,10 @@ export default function DetalleTorneo() {
         {esAdmin && (
           <View style={estilos.filaExportar}>
             <Pressable style={[estilos.botonAdmin, { flex: 1 }]} onPress={() => exportarResultados('csv')} disabled={exportando}>
-              {exportando ? <ActivityIndicator color="#0B1E4D" /> : <Text style={estilos.botonAdminTexto}>Exportar CSV</Text>}
+              {exportando ? <ActivityIndicator color={colores.navy} /> : <Text style={estilos.botonAdminTexto}>Exportar CSV</Text>}
             </Pressable>
             <Pressable style={[estilos.botonAdmin, { flex: 1 }]} onPress={() => exportarResultados('pdf')} disabled={exportando}>
-              {exportando ? <ActivityIndicator color="#0B1E4D" /> : <Text style={estilos.botonAdminTexto}>Exportar PDF</Text>}
+              {exportando ? <ActivityIndicator color={colores.navy} /> : <Text style={estilos.botonAdminTexto}>Exportar PDF</Text>}
             </Pressable>
           </View>
         )}
@@ -216,16 +229,23 @@ export default function DetalleTorneo() {
       </View>
 
       <Text style={estilos.subtitulo}>Inscritos ({inscritos.length})</Text>
-      {inscritos.length === 0 ? (
-        <Text style={estilos.vacio}>Todavía no hay inscritos</Text>
-      ) : (
-        inscritos.map((item) => (
-          <View key={item.id} style={estilos.filaInscrito}>
-            <Text style={estilos.inscritoNombre}>{item.usuario.nombre}</Text>
-            {item.usuario.tipo === 'externo' && <Text style={estilos.tagExterno}>Externo</Text>}
-          </View>
-        ))
-      )}
+      <View style={estilos.tarjeta}>
+        {inscritos.length === 0 ? (
+          <Text style={estilos.vacio}>Todavía no hay inscritos</Text>
+        ) : (
+          inscritos.map((item, i) => (
+            <View key={item.id} style={[estilos.filaInscrito, i > 0 && estilos.filaConDivisor]}>
+              <Avatar nombre={item.usuario.nombre} tamano={32} />
+              <Text style={estilos.inscritoNombre}>{item.usuario.nombre}</Text>
+              {item.usuario.tipo === 'externo' && (
+                <View style={estilos.tagExterno}>
+                  <Text style={estilos.tagExternoTexto}>Externo</Text>
+                </View>
+              )}
+            </View>
+          ))
+        )}
+      </View>
 
       <SeccionGrupos torneoId={id} torneo={torneo} inscritos={inscritos} esAdmin={esAdmin} token={token} onCambio={cargar} />
 
@@ -235,14 +255,19 @@ export default function DetalleTorneo() {
           {rondas.map((ronda) => (
             <View key={ronda.nombre} style={estilos.bloqueRonda}>
               <Text style={estilos.nombreRonda}>{ronda.nombre}</Text>
-              {ronda.partidos.map((p) => (
-                <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}`)}>
-                  <Text style={estilos.jugadoresPartido}>
-                    {p.jugadorA?.nombre || 'Por definir'} vs {p.jugadorB?.nombre || 'Por definir'}
-                  </Text>
-                  <Text style={estilos.estadoPartido}>{ETIQUETAS_ESTADO_PARTIDO[p.estado]}</Text>
-                </Pressable>
-              ))}
+              {ronda.partidos.map((p) => {
+                const etiquetaPartido = ETIQUETAS_ESTADO_PARTIDO[p.estado] || ETIQUETAS_ESTADO_PARTIDO.por_definir;
+                return (
+                  <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}`)}>
+                    <Text style={estilos.jugadoresPartido}>
+                      {p.jugadorA?.nombre || 'Por definir'} vs {p.jugadorB?.nombre || 'Por definir'}
+                    </Text>
+                    <View style={[estilos.badge, { backgroundColor: etiquetaPartido.fondo }]}>
+                      <Text style={[estilos.badgeTexto, { color: etiquetaPartido.color }]}>{etiquetaPartido.texto}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           ))}
         </>
@@ -252,46 +277,70 @@ export default function DetalleTorneo() {
 }
 
 const estilos = StyleSheet.create({
-  centrado: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  contenedor: { padding: 20, alignItems: 'center', backgroundColor: '#fff' },
-  nombre: { fontSize: 22, fontWeight: '700', textAlign: 'center' },
-  detalle: { color: '#555', marginTop: 4, textTransform: 'capitalize' },
-  estado: { color: '#0B1E4D', fontWeight: '600', marginTop: 8 },
-  fecha: { color: '#888', fontSize: 12, marginTop: 4 },
-  error: { color: '#dc2626', marginTop: 12, textAlign: 'center' },
-  acciones: { width: '100%', marginTop: 20, gap: 10 },
-  boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
-  botonTexto: { color: '#fff', fontWeight: '700' },
-  botonSecundario: { paddingVertical: 10, alignItems: 'center' },
-  botonSecundarioTexto: { color: '#dc2626', fontWeight: '600' },
-  botonAdmin: { borderWidth: 1, borderColor: '#0B1E4D', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-  botonAdminTexto: { color: '#0B1E4D', fontWeight: '600' },
-  filaExportar: { flexDirection: 'row', gap: 10 },
-  botonEliminar: { borderWidth: 1, borderColor: '#dc2626', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-  botonEliminarTexto: { color: '#dc2626', fontWeight: '600' },
-  subtitulo: { alignSelf: 'flex-start', fontWeight: '600', marginTop: 28, marginBottom: 8 },
-  vacio: { color: '#888', fontSize: 13, alignSelf: 'flex-start' },
-  filaInscrito: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    width: '100%',
+  centrado: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.fondo },
+  contenedor: { padding: 16, paddingBottom: 48, backgroundColor: colores.fondo },
+  tarjetaPrincipal: {
+    backgroundColor: colores.tarjeta,
+    borderRadius: radios.tarjeta,
+    padding: 20,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  inscritoNombre: { fontSize: 14 },
-  tagExterno: { fontSize: 11, color: '#7e22ce', fontWeight: '600' },
-  bloqueRonda: { width: '100%', marginBottom: 16 },
-  nombreRonda: { fontWeight: '700', color: '#0B1E4D', marginBottom: 6 },
+  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: radios.pildora, marginBottom: 12 },
+  badgeTexto: { fontSize: 12, fontWeight: '700' },
+  nombre: { fontSize: 21, fontWeight: '800', color: colores.texto, textAlign: 'center' },
+  filaChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 12 },
+  chip: { backgroundColor: colores.gris, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radios.pildora },
+  chipTexto: { fontSize: 12, fontWeight: '600', color: colores.textoSecundario, textTransform: 'capitalize' },
+  filaFecha: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12 },
+  fecha: { color: colores.textoSecundario, fontSize: 12 },
+  error: { color: colores.error, marginTop: 12, textAlign: 'center' },
+  acciones: { width: '100%', marginTop: 16, gap: 10 },
+  boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
+  botonTexto: { color: colores.textoClaro, fontWeight: '700' },
+  botonSecundario: { paddingVertical: 10, alignItems: 'center' },
+  botonSecundarioTexto: { color: colores.error, fontWeight: '600' },
+  botonAdmin: { borderWidth: 1, borderColor: colores.navy, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  botonAdminTexto: { color: colores.navy, fontWeight: '600' },
+  filaExportar: { flexDirection: 'row', gap: 10 },
+  botonEliminar: { borderWidth: 1, borderColor: colores.error, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  botonEliminarTexto: { color: colores.error, fontWeight: '600' },
+  subtitulo: { fontWeight: '700', color: colores.texto, marginTop: 24, marginBottom: 8, fontSize: 15 },
+  tarjeta: {
+    backgroundColor: colores.tarjeta,
+    borderRadius: radios.tarjeta,
+    padding: 14,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  vacio: { color: colores.textoSecundario, fontSize: 13 },
+  filaInscrito: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  filaConDivisor: { borderTopWidth: 1, borderTopColor: colores.borde },
+  inscritoNombre: { fontSize: 14, color: colores.texto, fontWeight: '600', flex: 1 },
+  tagExterno: { backgroundColor: colores.infoFondo, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radios.pildora },
+  tagExternoTexto: { fontSize: 11, color: colores.info, fontWeight: '700' },
+  bloqueRonda: { marginBottom: 16 },
+  nombreRonda: { fontWeight: '700', color: colores.navy, marginBottom: 8 },
   filaPartido: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 6,
+    backgroundColor: colores.tarjeta,
+    padding: 14,
+    borderRadius: radios.tarjeta,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  jugadoresPartido: { fontSize: 13, flex: 1, marginRight: 8 },
-  estadoPartido: { fontSize: 11, color: '#666' },
+  jugadoresPartido: { fontSize: 13, color: colores.texto, flex: 1, marginRight: 8, fontWeight: '600' },
 });
