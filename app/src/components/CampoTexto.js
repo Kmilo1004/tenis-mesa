@@ -12,6 +12,10 @@ export default function CampoTexto({ etiqueta, secureTextEntry, ...propsTextInpu
       <Text style={estilos.etiqueta}>{etiqueta}</Text>
       <View style={estilos.filaInput}>
         <TextInput
+          // En Android, alternar secureTextEntry en un TextInput ya montado a veces no vuelve a
+          // aplicar el enmascarado con puntos (queda en blanco aunque sí haya texto). Cambiar la
+          // key fuerza a React a montar un input nativo nuevo cada vez que se alterna.
+          key={esPassword ? (mostrarPassword ? 'visible' : 'oculto') : 'texto'}
           style={[estilos.input, esPassword && estilos.inputConIcono]}
           placeholderTextColor="#999"
           secureTextEntry={esPassword && !mostrarPassword}
@@ -42,6 +46,9 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
+    // Sin un color explícito, Android puede heredar uno casi invisible cuando el sistema tiene
+    // "Force Dark" activado (afecta sobre todo a los puntos de secureTextEntry).
+    color: colores.texto,
   },
   inputConIcono: { paddingRight: 44 },
   botonOjo: { position: 'absolute', right: 12, padding: 2 },

@@ -238,7 +238,7 @@ const estilos = StyleSheet.create({
   vacio: { color: '#888', fontSize: 13 },
   aviso: { color: '#b45309', fontSize: 12, marginBottom: 8 },
   etiqueta: { fontSize: 13, fontWeight: '600', color: '#444', marginTop: 10, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15, width: 80 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15, width: 80, color: '#111827' },
   boton: { backgroundColor: '#0B1E4D', paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 14 },
   botonTexto: { color: '#fff', fontWeight: '700' },
   botonAdmin: { borderWidth: 1, borderColor: '#0B1E4D', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },

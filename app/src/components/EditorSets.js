@@ -87,6 +87,7 @@ const estilos = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 8,
     fontSize: 15,
+    color: '#111827',
   },
   guion: { width: 24, textAlign: 'center', color: '#666' },
   filaBotones: { flexDirection: 'row', gap: 12, marginTop: 4, marginBottom: 8 },

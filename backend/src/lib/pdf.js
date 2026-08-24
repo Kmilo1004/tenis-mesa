@@ -105,7 +105,7 @@ function dibujarPiePagina(doc) {
       .fillColor(TEXTO_SECUNDARIO)
       .font('Helvetica')
       .fontSize(8)
-      .text('TM UNIMAG · Club de Tenis de Mesa', margenIzq, y, { width: 250, lineBreak: false });
+      .text('TM UNIMAG · Tenis de Mesa', margenIzq, y, { width: 250, lineBreak: false });
     doc.text(`Página ${i - rango.start + 1} de ${rango.count}`, anchoPagina - margenDer - 150, y, {
       width: 150,
       align: 'right',
