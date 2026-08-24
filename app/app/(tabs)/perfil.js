@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Linking, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../src/api/client';
@@ -14,15 +14,27 @@ import { esVersionMasNueva } from '../../src/lib/actualizaciones';
 const VERSION_ACTUAL = Constants.expoConfig?.version || '1.0.0';
 
 export default function Perfil() {
-  const { usuario, cargando, sinConexion, cerrarSesion } = useAuth();
+  const { usuario, token, cargando, sinConexion, cerrarSesion } = useAuth();
   const [buscandoActualizacion, setBuscandoActualizacion] = useState(false);
   const [actualizacionDisponible, setActualizacionDisponible] = useState(null);
+  const [estadisticas, setEstadisticas] = useState(null);
 
   useEffect(() => {
     if (!cargando && !usuario) {
       router.replace('/login');
     }
   }, [cargando, usuario]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!usuario) return;
+      apiFetch(`/usuarios/${usuario.id}/estadisticas`, { token })
+        .then(setEstadisticas)
+        .catch(() => {
+          // no es crítico: si falla, la tarjeta de estadísticas simplemente no se muestra
+        });
+    }, [usuario?.id, token]),
+  );
 
   useEffect(() => {
     buscarActualizacion({ silencioso: true });
@@ -117,6 +129,67 @@ export default function Perfil() {
             </View>
           </View>
         </View>
+
+        {estadisticas && (
+          <View style={estilos.tarjeta}>
+            <Text style={estilos.tarjetaTitulo}>MIS ESTADÍSTICAS</Text>
+            {estadisticas.record.totalPartidos === 0 ? (
+              <Text style={estilos.statsVacio}>Todavía no tienes partidos confirmados</Text>
+            ) : (
+              <>
+                <View style={estilos.filaStats}>
+                  <View style={estilos.subTarjetaStats}>
+                    <Text style={estilos.statsMiniTitulo}>Récord</Text>
+                    <Text style={estilos.statsRecordValor}>
+                      {estadisticas.record.victorias}-{estadisticas.record.derrotas}
+                    </Text>
+                    <Text style={estilos.statsRecordSub}>
+                      {estadisticas.record.totalPartidos} partidos · {estadisticas.record.porcentajeVictorias}% victorias
+                    </Text>
+                  </View>
+                  <View style={estilos.subTarjetaStats}>
+                    <Text style={estilos.statsMiniTitulo}>Racha actual</Text>
+                    <View
+                      style={[
+                        estilos.badgeRacha,
+                        { backgroundColor: estadisticas.racha.tipo === 'V' ? colores.exitoFondo : colores.errorFondo },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          estilos.badgeRachaTexto,
+                          { color: estadisticas.racha.tipo === 'V' ? colores.exito : colores.error },
+                        ]}
+                      >
+                        {estadisticas.racha.cantidad}
+                        {estadisticas.racha.tipo}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {estadisticas.headToHead.length > 0 && (
+                  <View style={estilos.listaRivales}>
+                    {estadisticas.headToHead.slice(0, 3).map((r) => (
+                      <View key={r.rivalId} style={estilos.filaRival}>
+                        <Avatar nombre={r.rivalNombre} tamano={26} />
+                        <Text style={estilos.rivalNombre}>{r.rivalNombre}</Text>
+                        <Text style={estilos.rivalRecord}>
+                          {r.victorias}-{r.derrotas}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <Pressable style={estilos.enlaceCompleto} onPress={() => router.push(`/ranking/${usuario.id}`)}>
+                  <Text style={estilos.enlaceCompletoTexto}>Ver estadísticas completas</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colores.acento} />
+                </Pressable>
+              </>
+            )}
+          </View>
+        )}
 
         {esAdmin && (
           <View style={estilos.tarjeta}>
@@ -227,4 +300,27 @@ const estilos = StyleSheet.create({
   },
   botonBuscarActualizacionTexto: { color: colores.navy, fontWeight: '600' },
   versionTexto: { textAlign: 'center', color: colores.textoSecundario, fontSize: 11, marginTop: 2 },
+  statsVacio: { color: colores.textoSecundario, fontSize: 13 },
+  filaStats: { flexDirection: 'row', gap: 10 },
+  subTarjetaStats: { flex: 1, backgroundColor: colores.fondo, borderRadius: 14, padding: 12 },
+  statsMiniTitulo: { fontSize: 10, fontWeight: '700', color: colores.textoSecundario, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 },
+  statsRecordValor: { fontSize: 22, fontWeight: '800', color: colores.texto },
+  statsRecordSub: { fontSize: 11, color: colores.textoSecundario, marginTop: 2 },
+  badgeRacha: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: radios.pildora },
+  badgeRachaTexto: { fontSize: 16, fontWeight: '800' },
+  listaRivales: { marginTop: 14, gap: 9 },
+  filaRival: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  rivalNombre: { flex: 1, fontSize: 13, fontWeight: '600', color: colores.texto },
+  rivalRecord: { fontSize: 13, fontWeight: '800', color: colores.navy },
+  enlaceCompleto: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colores.borde,
+  },
+  enlaceCompletoTexto: { fontSize: 13, fontWeight: '700', color: colores.acento },
 });
