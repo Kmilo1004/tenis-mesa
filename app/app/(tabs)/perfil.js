@@ -247,6 +247,7 @@ export default function Perfil() {
           <Text style={estilos.botonBuscarActualizacionTexto}>Buscar actualizaciones</Text>
         </Pressable>
         <Text style={estilos.versionTexto}>Versión {VERSION_ACTUAL}</Text>
+        <Text style={estilos.creditoTexto}>By Andrés Alvarez</Text>
 
         <Pressable style={estilos.botonSalir} onPress={salir}>
           <Ionicons name="log-out-outline" size={18} color={colores.error} />
@@ -326,6 +327,7 @@ const estilos = StyleSheet.create({
   },
   botonBuscarActualizacionTexto: { color: colores.navy, fontWeight: '600' },
   versionTexto: { textAlign: 'center', color: colores.textoSecundario, fontSize: 11, marginTop: 2 },
+  creditoTexto: { textAlign: 'center', color: colores.textoSecundario, fontSize: 11, marginTop: 2 },
   statsVacio: { color: colores.textoSecundario, fontSize: 13 },
   filaStats: { flexDirection: 'row', gap: 10 },
   subTarjetaStats: { flex: 1, backgroundColor: colores.fondo, borderRadius: 14, padding: 12 },

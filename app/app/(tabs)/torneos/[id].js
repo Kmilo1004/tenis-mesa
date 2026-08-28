@@ -46,6 +46,7 @@ export default function DetalleTorneo() {
   const [siembraCuadro, setSiembraCuadro] = useState('aleatorio');
   const [editandoCruces, setEditandoCruces] = useState(false);
   const [intercambiando, setIntercambiando] = useState(null); // { partidoId, slot }
+  const [inscritosAbiertos, setInscritosAbiertos] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -181,6 +182,92 @@ export default function DetalleTorneo() {
     ronda.partidos.push(partido);
   }
 
+  // En los torneos "mixto" el cuadro de eliminación solo se genera cuando la fase de grupos
+  // termina, así que si ya hay cuadro esa es la fase vigente y se muestra antes que los grupos.
+  const bloqueCuadro = rondas.length > 0 && (
+    <View key="bloque-cuadro">
+      <View style={estilos.filaSubtituloConAccion}>
+        <Text style={[estilos.subtitulo, { marginTop: 0 }]}>Cuadro</Text>
+        {puedeEditarCruces && (
+          <Pressable
+            onPress={() => {
+              setEditandoCruces((v) => !v);
+              setIntercambiando(null);
+            }}
+          >
+            <Text style={estilos.enlaceEditarCruces}>{editandoCruces ? 'Listo' : 'Editar cruces'}</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {rondas.map((ronda, indiceRonda) => (
+        <View key={ronda.nombre} style={estilos.bloqueRonda}>
+          <Text style={estilos.nombreRonda}>{ronda.nombre}</Text>
+          {ronda.partidos.map((p) => {
+            const etiquetaPartido = ETIQUETAS_ESTADO_PARTIDO[p.estado] || ETIQUETAS_ESTADO_PARTIDO.por_definir;
+            const esEditable = editandoCruces && indiceRonda === 0 && p.estado === 'pendiente';
+
+            if (esEditable) {
+              return (
+                <View key={p.id} style={estilos.filaPartidoEditable}>
+                  <View style={estilos.filaCruceEditable}>
+                    <Pressable style={estilos.chipJugador} onPress={() => setIntercambiando({ partidoId: p.id, slot: 'A' })}>
+                      <Text style={estilos.chipJugadorTexto} numberOfLines={1}>
+                        {p.jugadorA?.nombre || 'Por definir'}
+                      </Text>
+                      <Ionicons name="swap-horizontal-outline" size={14} color={colores.navy} />
+                    </Pressable>
+                    <Text style={estilos.vsTexto}>vs</Text>
+                    <Pressable style={estilos.chipJugador} onPress={() => setIntercambiando({ partidoId: p.id, slot: 'B' })}>
+                      <Text style={estilos.chipJugadorTexto} numberOfLines={1}>
+                        {p.jugadorB?.nombre || 'Por definir'}
+                      </Text>
+                      <Ionicons name="swap-horizontal-outline" size={14} color={colores.navy} />
+                    </Pressable>
+                  </View>
+
+                  {intercambiando?.partidoId === p.id && (
+                    <View style={estilos.listaCandidatos}>
+                      <Text style={estilos.listaCandidatosTitulo}>Intercambiar con:</Text>
+                      {candidatosIntercambio(p.id).length === 0 ? (
+                        <Text style={estilos.vacio}>No hay otro cruce disponible para intercambiar</Text>
+                      ) : (
+                        candidatosIntercambio(p.id).map((c) => (
+                          <Pressable
+                            key={c.id}
+                            style={estilos.candidato}
+                            onPress={() => intercambiarCruce(p.id, intercambiando.slot, c.id)}
+                            disabled={enviando}
+                          >
+                            <Text style={estilos.candidatoTexto}>{c.nombre}</Text>
+                          </Pressable>
+                        ))
+                      )}
+                      <Pressable onPress={() => setIntercambiando(null)} disabled={enviando}>
+                        <Text style={estilos.cancelarTexto}>Cancelar</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              );
+            }
+
+            return (
+              <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}?desdeTorneo=${id}`)}>
+                <Text style={estilos.jugadoresPartido}>
+                  {p.jugadorA?.nombre || 'Por definir'} vs {p.jugadorB?.nombre || 'Por definir'}
+                </Text>
+                <View style={[estilos.badge, { backgroundColor: etiquetaPartido.fondo }]}>
+                  <Text style={[estilos.badgeTexto, { color: etiquetaPartido.color }]}>{etiquetaPartido.texto}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <ScrollView contentContainerStyle={estilos.contenedor}>
       <View style={estilos.tarjetaPrincipal}>
@@ -287,110 +374,33 @@ export default function DetalleTorneo() {
         </View>
       )}
 
-      <Text style={estilos.subtitulo}>Inscritos ({inscritos.length})</Text>
-      <View style={estilos.tarjeta}>
-        {inscritos.length === 0 ? (
-          <Text style={estilos.vacio}>Todavía no hay inscritos</Text>
-        ) : (
-          inscritos.map((item, i) => (
-            <View key={item.id} style={[estilos.filaInscrito, i > 0 && estilos.filaConDivisor]}>
-              <Avatar nombre={item.usuario.nombre} tamano={32} />
-              <Text style={estilos.inscritoNombre}>{item.usuario.nombre}</Text>
-              {item.usuario.tipo === 'externo' && (
-                <View style={estilos.tagExterno}>
-                  <Text style={estilos.tagExternoTexto}>Externo</Text>
-                </View>
-              )}
-            </View>
-          ))
-        )}
-      </View>
+      <Pressable style={estilos.filaSubtituloConAccion} onPress={() => setInscritosAbiertos((v) => !v)}>
+        <Text style={[estilos.subtitulo, { marginTop: 0 }]}>Inscritos ({inscritos.length})</Text>
+        <Ionicons name={inscritosAbiertos ? 'chevron-up' : 'chevron-down'} size={18} color={colores.textoSecundario} />
+      </Pressable>
+      {inscritosAbiertos && (
+        <View style={estilos.tarjeta}>
+          {inscritos.length === 0 ? (
+            <Text style={estilos.vacio}>Todavía no hay inscritos</Text>
+          ) : (
+            inscritos.map((item, i) => (
+              <View key={item.id} style={[estilos.filaInscrito, i > 0 && estilos.filaConDivisor]}>
+                <Avatar nombre={item.usuario.nombre} tamano={32} />
+                <Text style={estilos.inscritoNombre}>{item.usuario.nombre}</Text>
+                {item.usuario.tipo === 'externo' && (
+                  <View style={estilos.tagExterno}>
+                    <Text style={estilos.tagExternoTexto}>Externo</Text>
+                  </View>
+                )}
+              </View>
+            ))
+          )}
+        </View>
+      )}
+
+      {bloqueCuadro}
 
       <SeccionGrupos torneoId={id} torneo={torneo} inscritos={inscritos} esAdmin={esAdmin} token={token} onCambio={cargar} />
-
-      {rondas.length > 0 && (
-        <>
-          <View style={estilos.filaSubtituloConAccion}>
-            <Text style={[estilos.subtitulo, { marginTop: 0 }]}>Cuadro</Text>
-            {puedeEditarCruces && (
-              <Pressable
-                onPress={() => {
-                  setEditandoCruces((v) => !v);
-                  setIntercambiando(null);
-                }}
-              >
-                <Text style={estilos.enlaceEditarCruces}>{editandoCruces ? 'Listo' : 'Editar cruces'}</Text>
-              </Pressable>
-            )}
-          </View>
-
-          {rondas.map((ronda, indiceRonda) => (
-            <View key={ronda.nombre} style={estilos.bloqueRonda}>
-              <Text style={estilos.nombreRonda}>{ronda.nombre}</Text>
-              {ronda.partidos.map((p) => {
-                const etiquetaPartido = ETIQUETAS_ESTADO_PARTIDO[p.estado] || ETIQUETAS_ESTADO_PARTIDO.por_definir;
-                const esEditable = editandoCruces && indiceRonda === 0 && p.estado === 'pendiente';
-
-                if (esEditable) {
-                  return (
-                    <View key={p.id} style={estilos.filaPartidoEditable}>
-                      <View style={estilos.filaCruceEditable}>
-                        <Pressable style={estilos.chipJugador} onPress={() => setIntercambiando({ partidoId: p.id, slot: 'A' })}>
-                          <Text style={estilos.chipJugadorTexto} numberOfLines={1}>
-                            {p.jugadorA?.nombre || 'Por definir'}
-                          </Text>
-                          <Ionicons name="swap-horizontal-outline" size={14} color={colores.navy} />
-                        </Pressable>
-                        <Text style={estilos.vsTexto}>vs</Text>
-                        <Pressable style={estilos.chipJugador} onPress={() => setIntercambiando({ partidoId: p.id, slot: 'B' })}>
-                          <Text style={estilos.chipJugadorTexto} numberOfLines={1}>
-                            {p.jugadorB?.nombre || 'Por definir'}
-                          </Text>
-                          <Ionicons name="swap-horizontal-outline" size={14} color={colores.navy} />
-                        </Pressable>
-                      </View>
-
-                      {intercambiando?.partidoId === p.id && (
-                        <View style={estilos.listaCandidatos}>
-                          <Text style={estilos.listaCandidatosTitulo}>Intercambiar con:</Text>
-                          {candidatosIntercambio(p.id).length === 0 ? (
-                            <Text style={estilos.vacio}>No hay otro cruce disponible para intercambiar</Text>
-                          ) : (
-                            candidatosIntercambio(p.id).map((c) => (
-                              <Pressable
-                                key={c.id}
-                                style={estilos.candidato}
-                                onPress={() => intercambiarCruce(p.id, intercambiando.slot, c.id)}
-                                disabled={enviando}
-                              >
-                                <Text style={estilos.candidatoTexto}>{c.nombre}</Text>
-                              </Pressable>
-                            ))
-                          )}
-                          <Pressable onPress={() => setIntercambiando(null)} disabled={enviando}>
-                            <Text style={estilos.cancelarTexto}>Cancelar</Text>
-                          </Pressable>
-                        </View>
-                      )}
-                    </View>
-                  );
-                }
-
-                return (
-                  <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}?desdeTorneo=${id}`)}>
-                    <Text style={estilos.jugadoresPartido}>
-                      {p.jugadorA?.nombre || 'Por definir'} vs {p.jugadorB?.nombre || 'Por definir'}
-                    </Text>
-                    <View style={[estilos.badge, { backgroundColor: etiquetaPartido.fondo }]}>
-                      <Text style={[estilos.badgeTexto, { color: etiquetaPartido.color }]}>{etiquetaPartido.texto}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
-        </>
-      )}
     </ScrollView>
   );
 }

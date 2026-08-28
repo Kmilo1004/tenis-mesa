@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "543071313123",
+    "project_id": "tmunimagapp",
+    "storage_bucket": "tmunimagapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:543071313123:android:30c4d81aeaf318b785f9d6",
+        "android_client_info": {
+          "package_name": "com.tmunimag.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1dUHxWsyeHXKE2speS7bgZGxl-PI4vjo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

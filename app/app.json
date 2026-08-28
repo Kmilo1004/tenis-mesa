@@ -4,7 +4,7 @@
     "slug": "tenis-mesa-app",
     "owner": "kmilo.al",
     "scheme": "tenismesa",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/Logo.jpeg",
     "userInterfaceStyle": "light",
@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.tmunimag.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/Logo.jpeg"
