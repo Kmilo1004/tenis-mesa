@@ -6,9 +6,9 @@ const router = express.Router();
 // Store), este valor se actualiza a mano cada vez que se genera un build nuevo en EAS: subir
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
-  version: '1.0.6',
-  url: 'https://expo.dev/artifacts/eas/aY4AOd39yJx0K-5Zje_t9BHhjd64QF3_JQHzK2TSI0g.apk',
-  notas: 'Implementación de estadísticas: ahora tu Perfil muestra tu récord, racha y rivales más frecuentes.',
+  version: '1.0.8',
+  url: 'https://expo.dev/artifacts/eas/tA5nwUxECSUPI9kXK8I6OSmxXv4e5WW2pQymd1w2Npg.apk',
+  notas: 'Los jugadores ya pueden reportar sus resultados de torneo (con aprobación del admin/árbitro), navegación arreglada en partidos de fase de grupos, torneo reorganizado con intercambio manual de cruces, y notificaciones push reales.',
 };
 
 // GET /version — pública, la consulta la app para saber si hay un APK más nuevo disponible.
