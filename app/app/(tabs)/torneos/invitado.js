@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
@@ -11,12 +11,11 @@ export default function AgregarInvitado() {
 
   const [nombre, setNombre] = useState('');
   const [procedencia, setProcedencia] = useState('');
-  const [consiente, setConsiente] = useState(false);
 
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
 
-  const listo = nombre.trim() && consiente;
+  const listo = nombre.trim();
 
   async function enviar() {
     setError(null);
@@ -61,15 +60,6 @@ export default function AgregarInvitado() {
           onChangeText={setProcedencia}
         />
 
-        <Pressable style={estilos.filaConsentimiento} onPress={() => setConsiente((v) => !v)}>
-          <View style={[estilos.checkbox, consiente && estilos.checkboxMarcado]}>
-            {consiente && <Text style={estilos.checkboxMarca}>✓</Text>}
-          </View>
-          <Text style={estilos.textoConsentimiento}>
-            El invitado dio su consentimiento explícito para almacenar sus datos (Ley 1581 de 2012)
-          </Text>
-        </Pressable>
-
         {error && <Text style={estilos.error}>{error}</Text>}
 
         <Pressable style={estilos.boton} onPress={enviar} disabled={!listo || enviando}>
@@ -83,20 +73,6 @@ export default function AgregarInvitado() {
 const estilos = StyleSheet.create({
   contenedor: { padding: 20, paddingBottom: 48 },
   subtitulo: { fontSize: 13, color: '#666', marginBottom: 20 },
-  filaConsentimiento: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 8 },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#999',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  checkboxMarcado: { backgroundColor: '#0B1E4D', borderColor: '#0B1E4D' },
-  checkboxMarca: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  textoConsentimiento: { flex: 1, fontSize: 13, color: '#444' },
   error: { color: '#dc2626', marginTop: 8, textAlign: 'center' },
   boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   botonTexto: { color: '#fff', fontWeight: '700' },
