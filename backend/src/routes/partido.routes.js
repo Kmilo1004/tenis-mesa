@@ -335,8 +335,10 @@ router.post('/partidos/:id/validar', verificarToken, requiereRol('administrador'
 });
 
 // POST /partidos/{id}/resultado — registra el resultado de un partido de torneo ya emparejado
-// por el cuadro (RF-05/RF-07 para torneos). Solo admin o árbitro.
-router.post('/partidos/:id/resultado', verificarToken, requiereRol('administrador', 'arbitro'), async (req, res, next) => {
+// por el cuadro (RF-05/RF-07 para torneos). Lo puede reportar cualquiera de los dos jugadores,
+// o un admin/árbitro. Si lo reporta un jugador, queda "pendiente_aprobacion" (no afecta el
+// ranking todavía); si lo reporta un admin/árbitro, se confirma de una vez, como antes.
+router.post('/partidos/:id/resultado', verificarToken, async (req, res, next) => {
   try {
     const { sets } = req.body;
     if (!sets) {
@@ -356,8 +358,20 @@ router.post('/partidos/:id/resultado', verificarToken, requiereRol('administrado
       return res.status(409).json({ error: 'Este partido todavía no tiene definidos a ambos jugadores' });
     }
 
+    if (partido.estado === 'pendiente_aprobacion') {
+      return res.status(409).json({ error: 'Ya se reportó un resultado para este partido; está pendiente de aprobación' });
+    }
+
     if (partido.estado !== 'pendiente') {
       return res.status(409).json({ error: `Este partido no está listo para jugarse (estado actual: ${partido.estado})` });
+    }
+
+    const rolesUsuario = await obtenerRoles(req.usuarioId);
+    const esAdminOArbitro = rolesUsuario.includes('administrador') || rolesUsuario.includes('arbitro');
+    const esParticipante = req.usuarioId === partido.jugadorAId || req.usuarioId === partido.jugadorBId;
+
+    if (!esAdminOArbitro && !esParticipante) {
+      return res.status(403).json({ error: 'Debes ser uno de los jugadores de este partido, o admin/árbitro, para reportar el resultado' });
     }
 
     const resultado = validarMarcador(sets);
@@ -367,22 +381,126 @@ router.post('/partidos/:id/resultado', verificarToken, requiereRol('administrado
 
     const ganadorId = resultado.ganador === 'A' ? partido.jugadorAId : partido.jugadorBId;
 
-    const partidoConSets = await prisma.partido.update({
-      where: { id: partido.id },
-      data: { ganadorId, sets: { create: limpiarSets(sets) } },
-    });
+    if (esAdminOArbitro) {
+      const partidoConSets = await prisma.partido.update({
+        where: { id: partido.id },
+        data: { ganadorId, sets: { create: limpiarSets(sets) } },
+      });
 
-    const torneo = await prisma.torneo.findUnique({ where: { id: partido.torneoId } });
-    const partidoConfirmado = await confirmarResultado(prisma, partidoConSets, { validadoPor: req.usuarioId, k: kTorneo(torneo) });
+      const torneo = await prisma.torneo.findUnique({ where: { id: partido.torneoId } });
+      const partidoConfirmado = await confirmarResultado(prisma, partidoConSets, { validadoPor: req.usuarioId, k: kTorneo(torneo) });
+
+      await registrarAuditoria(prisma, {
+        usuarioId: req.usuarioId,
+        accion: 'registrar_resultado_torneo',
+        entidadTipo: 'partido',
+        entidadId: partido.id,
+      });
+
+      return res.status(200).json(partidoConfirmado);
+    }
+
+    const partidoReportado = await prisma.partido.update({
+      where: { id: partido.id },
+      data: {
+        ganadorId,
+        estado: 'pendiente_aprobacion',
+        reportadoPor: req.usuarioId,
+        sets: { create: limpiarSets(sets) },
+      },
+      include: INCLUYE_JUGADORES,
+    });
 
     await registrarAuditoria(prisma, {
       usuarioId: req.usuarioId,
-      accion: 'registrar_resultado_torneo',
+      accion: 'reportar_resultado_torneo',
       entidadTipo: 'partido',
       entidadId: partido.id,
     });
 
-    return res.status(200).json(partidoConfirmado);
+    const jueces = await prisma.usuario.findMany({
+      where: { roles: { some: { rol: { in: ['administrador', 'arbitro'] } } } },
+      select: { id: true },
+    });
+    const reportante = req.usuarioId === partido.jugadorAId ? partidoReportado.jugadorA : partidoReportado.jugadorB;
+    await Promise.all(
+      jueces.map((j) =>
+        crearNotificacion(prisma, {
+          usuarioId: j.id,
+          tipo: 'torneo',
+          mensaje: `${reportante.nombre} reportó un resultado de torneo pendiente de tu aprobación`,
+          referenciaId: partidoReportado.id,
+        }),
+      ),
+    );
+
+    return res.status(200).json(partidoReportado);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /partidos/{id}/aprobar-resultado — solo admin/árbitro: aprueba o rechaza un resultado
+// de torneo que reportó un jugador. Aprobar confirma el partido igual que si lo hubiera
+// reportado un admin (aplica ELO, avanza el cuadro, etc.); rechazar lo devuelve a "pendiente"
+// para que se pueda volver a reportar.
+router.post('/partidos/:id/aprobar-resultado', verificarToken, requiereRol('administrador', 'arbitro'), async (req, res, next) => {
+  try {
+    const { aprobar, motivo } = req.body;
+    if (typeof aprobar !== 'boolean') {
+      return res.status(400).json({ error: 'aprobar debe ser true o false' });
+    }
+
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id }, include: INCLUYE_JUGADORES });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+
+    if (partido.estado !== 'pendiente_aprobacion') {
+      return res.status(409).json({ error: `Este partido no tiene un resultado pendiente de aprobación (estado actual: ${partido.estado})` });
+    }
+
+    if (aprobar) {
+      const torneo = await prisma.torneo.findUnique({ where: { id: partido.torneoId } });
+      const partidoConfirmado = await confirmarResultado(prisma, partido, { validadoPor: req.usuarioId, k: kTorneo(torneo) });
+
+      await registrarAuditoria(prisma, {
+        usuarioId: req.usuarioId,
+        accion: 'aprobar_resultado_torneo',
+        entidadTipo: 'partido',
+        entidadId: partido.id,
+      });
+
+      return res.status(200).json(partidoConfirmado);
+    }
+
+    await prisma.setPartido.deleteMany({ where: { partidoId: partido.id } });
+    const partidoRechazado = await prisma.partido.update({
+      where: { id: partido.id },
+      data: { estado: 'pendiente', ganadorId: null, reportadoPor: null },
+      include: INCLUYE_JUGADORES,
+    });
+
+    await registrarAuditoria(prisma, {
+      usuarioId: req.usuarioId,
+      accion: 'rechazar_resultado_torneo',
+      entidadTipo: 'partido',
+      entidadId: partido.id,
+      detalle: { motivo: motivo || null },
+    });
+
+    if (partido.reportadoPor) {
+      await crearNotificacion(prisma, {
+        usuarioId: partido.reportadoPor,
+        tipo: 'torneo',
+        mensaje: motivo
+          ? `Tu resultado reportado no fue aprobado: ${motivo}`
+          : 'Tu resultado reportado no fue aprobado. Puedes volver a reportarlo.',
+        referenciaId: partido.id,
+      });
+    }
+
+    return res.status(200).json(partidoRechazado);
   } catch (error) {
     return next(error);
   }

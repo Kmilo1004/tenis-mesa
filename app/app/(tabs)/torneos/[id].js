@@ -19,6 +19,7 @@ const ETIQUETAS_ESTADO = {
 const ETIQUETAS_ESTADO_PARTIDO = {
   por_definir: { texto: 'Por definir', color: colores.textoSecundario, fondo: colores.gris },
   pendiente: { texto: 'Pendiente', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  pendiente_aprobacion: { texto: 'Por aprobar', color: colores.advertencia, fondo: colores.advertenciaFondo },
   confirmado: { texto: 'Confirmado', color: colores.exito, fondo: colores.exitoFondo },
   en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
   anulado: { texto: 'Anulado', color: colores.error, fondo: colores.errorFondo },

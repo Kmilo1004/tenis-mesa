@@ -6,6 +6,7 @@ const { calcularTablaGrupo } = require('../lib/grupos.service');
 const { registrarAuditoria } = require('../lib/auditoria.service');
 const { notificarPartidoProximo } = require('../lib/notificaciones.service');
 const { revertirEloDePartido } = require('../lib/partidos.service');
+const { INCLUYE_JUGADORES } = require('../lib/partido.constants');
 const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -750,6 +751,27 @@ router.get('/torneos/:id/grupos/:grupoId/tabla', async (req, res, next) => {
 
     const tabla = await calcularTablaGrupo(prisma, grupo.id);
     return res.status(200).json({ grupo: { id: grupo.id, nombre: grupo.nombre }, tabla });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// GET /torneos/{id}/grupos/{grupoId}/partidos — partidos de un grupo (round-robin), para poder
+// navegar a cada uno y cargar/aprobar su resultado (RF-11c). Igual que /cuadro, pero por grupo.
+router.get('/torneos/:id/grupos/:grupoId/partidos', async (req, res, next) => {
+  try {
+    const grupo = await prisma.grupo.findFirst({ where: { id: req.params.grupoId, torneoId: req.params.id } });
+    if (!grupo) {
+      return res.status(404).json({ error: 'Grupo no encontrado en este torneo' });
+    }
+
+    const partidos = await prisma.partido.findMany({
+      where: { grupoId: grupo.id },
+      orderBy: { creadoEn: 'asc' },
+      include: INCLUYE_JUGADORES,
+    });
+
+    return res.status(200).json({ grupo: { id: grupo.id, nombre: grupo.nombre }, partidos });
   } catch (error) {
     return next(error);
   }

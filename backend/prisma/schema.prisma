@@ -44,6 +44,7 @@ model Usuario {
   partidosGanados      Partido[] @relation("PartidoGanador")
   partidosRegistrados  Partido[] @relation("PartidoRegistrador")
   partidosValidados    Partido[] @relation("PartidoValidador")
+  partidosReportados   Partido[] @relation("PartidoReportador")
   historialRanking     HistorialRanking[]
 
   torneosCreados Torneo[]      @relation("TorneoCreador")
@@ -81,6 +82,7 @@ enum TipoRanking {
 enum EstadoPartido {
   por_definir
   pendiente
+  pendiente_aprobacion
   confirmado
   descartado
   en_revision
@@ -118,6 +120,7 @@ model Partido {
   fechaPartido            DateTime      @map("fecha_partido")
   registradoPor           String        @map("registrado_por")
   validadoPor             String?       @map("validado_por")
+  reportadoPor            String?       @map("reportado_por")
   creadoEn                DateTime      @default(now()) @map("creado_en")
   partidoSiguienteId      String?       @map("partido_siguiente_id")
   slotSiguiente           SlotCuadro?   @map("slot_siguiente")
@@ -129,6 +132,7 @@ model Partido {
   ganador     Usuario? @relation("PartidoGanador", fields: [ganadorId], references: [id])
   registrador Usuario  @relation("PartidoRegistrador", fields: [registradoPor], references: [id])
   validador   Usuario? @relation("PartidoValidador", fields: [validadoPor], references: [id])
+  reportador  Usuario? @relation("PartidoReportador", fields: [reportadoPor], references: [id])
 
   partidoSiguiente   Partido?  @relation("PartidoCuadro", fields: [partidoSiguienteId], references: [id])
   partidosAnteriores Partido[] @relation("PartidoCuadro")

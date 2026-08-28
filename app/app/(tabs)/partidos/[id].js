@@ -16,6 +16,7 @@ const MOTIVOS_TEXTO = Object.fromEntries(MOTIVOS.map((m) => [m.valor, m.etiqueta
 
 const ETIQUETAS_ESTADO = {
   pendiente: { texto: 'Pendiente de confirmar', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  pendiente_aprobacion: { texto: 'Pendiente de aprobación', color: colores.advertencia, fondo: colores.advertenciaFondo },
   confirmado: { texto: 'Confirmado', color: colores.exito, fondo: colores.exitoFondo },
   descartado: { texto: 'Descartado', color: colores.textoSecundario, fondo: colores.gris },
   en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
@@ -38,6 +39,8 @@ export default function DetallePartido() {
   const [mostrarEdicion, setMostrarEdicion] = useState(false);
   const [setsEdicion, setSetsEdicion] = useState(setsIniciales());
   const [motivoAdmin, setMotivoAdmin] = useState('');
+  const [motivoRechazo, setMotivoRechazo] = useState('');
+  const [mostrarRechazo, setMostrarRechazo] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -70,10 +73,20 @@ export default function DetallePartido() {
   const esPartidoTorneo = Boolean(partido.torneoId);
   const esAdminOArbitro = usuario.roles?.some((r) => r.rol === 'administrador' || r.rol === 'arbitro');
   const puedoResponder = !esPartidoTorneo && partido.estado === 'pendiente' && partido.registradoPor !== usuario.id;
-  const puedoReportarResultado = esPartidoTorneo && partido.estado === 'pendiente' && esAdminOArbitro;
+  const esParticipanteTorneo = esPartidoTorneo && (partido.jugadorA?.id === usuario.id || partido.jugadorB?.id === usuario.id);
+  const puedoReportarResultado =
+    esPartidoTorneo && partido.estado === 'pendiente' && (esAdminOArbitro || esParticipanteTorneo);
   const esAdmin = usuario.roles?.some((r) => r.rol === 'administrador');
   const puedoResolverDisputa = esAdmin && partido.estado === 'en_revision';
   const puedoAdministrarResultado = esAdmin && partido.estado === 'confirmado';
+  const puedeAprobarResultado = esAdminOArbitro && partido.estado === 'pendiente_aprobacion';
+  const puedePromoverOficial =
+    esAdmin &&
+    partido.estado === 'confirmado' &&
+    partido.tipoPartido === 'casual' &&
+    partido.afectaRanking === 'no_oficial' &&
+    !partido.promovidoAOficial;
+  const puedeRescatar = esAdmin && partido.estado === 'descartado';
   const etiquetaEstado = ETIQUETAS_ESTADO[partido.estado] || ETIQUETAS_ESTADO.por_definir;
 
   async function confirmar() {
@@ -100,6 +113,25 @@ export default function DetallePartido() {
           sets: setsResultado.map((s) => ({ puntosJugadorA: Number(s.puntosJugadorA), puntosJugadorB: Number(s.puntosJugadorB) })),
         }),
       });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function aprobarResultadoTorneo(aprobar) {
+    setEnviando(true);
+    setError(null);
+    try {
+      await apiFetch(`/partidos/${id}/aprobar-resultado`, {
+        method: 'POST',
+        token,
+        body: JSON.stringify({ aprobar, motivo: aprobar ? undefined : motivoRechazo.trim() || undefined }),
+      });
+      setMostrarRechazo(false);
+      setMotivoRechazo('');
       await cargar();
     } catch (err) {
       setError(err.message);
@@ -189,6 +221,43 @@ export default function DetallePartido() {
     }
   }
 
+  function confirmarPromocion() {
+    Alert.alert(
+      '¿Promover este partido a oficial?',
+      'Además del Ranking normal (que ya tiene), este resultado también se aplicará al Ranking Interno, con su propio cálculo de puntos. No se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Promover', onPress: promoverAOficial },
+      ],
+    );
+  }
+
+  async function promoverAOficial() {
+    setEnviando(true);
+    setError(null);
+    try {
+      await apiFetch(`/partidos/${id}/validar`, { method: 'POST', token });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function rescatarPartido() {
+    setEnviando(true);
+    setError(null);
+    try {
+      await apiFetch(`/partidos/${id}/validar`, { method: 'POST', token });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={estilos.contenedor}>
       <View style={estilos.tarjetaPrincipal}>
@@ -198,6 +267,7 @@ export default function DetallePartido() {
 
         <Text style={estilos.titulo}>vs {rival?.nombre || 'Por definir'}</Text>
         {esPartidoTorneo && <Text style={estilos.torneoTag}>{partido.ronda || 'Fase de grupos'}</Text>}
+        {partido.promovidoAOficial && <Text style={estilos.torneoTag}>Promovido a oficial · cuenta para Ranking Interno</Text>}
         <View style={estilos.filaFecha}>
           <Ionicons name="calendar-outline" size={13} color={colores.textoSecundario} />
           <Text style={estilos.fecha}>{new Date(partido.fechaPartido).toLocaleString('es-CO')}</Text>
@@ -306,10 +376,59 @@ export default function DetallePartido() {
             etiquetaA={partido.jugadorA?.nombre || 'Jugador A'}
             etiquetaB={partido.jugadorB?.nombre || 'Jugador B'}
           />
+          {!esAdminOArbitro && (
+            <Text style={estilos.avisoTextoIzq}>
+              Un administrador o árbitro debe aprobar este resultado antes de que afecte el ranking.
+            </Text>
+          )}
 
           <Pressable style={estilos.boton} onPress={reportarResultado} disabled={!setsCompletos(setsResultado) || enviando}>
             {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Registrar resultado</Text>}
           </Pressable>
+        </View>
+      )}
+
+      {partido.estado === 'pendiente_aprobacion' && !puedeAprobarResultado && (
+        <View style={estilos.avisoDisputa}>
+          <Text style={estilos.avisoDisputaTexto}>
+            {partido.reportadoPor === usuario.id
+              ? 'Reportaste este resultado. Un administrador o árbitro debe aprobarlo antes de que afecte el ranking.'
+              : 'Tu rival reportó un resultado para este partido. Un administrador o árbitro debe aprobarlo antes de que afecte el ranking.'}
+          </Text>
+        </View>
+      )}
+
+      {puedeAprobarResultado && !mostrarRechazo && (
+        <View style={estilos.tarjeta}>
+          <Text style={estilos.etiqueta}>Resultado reportado por {partido.reportador?.nombre || 'un jugador'}</Text>
+          <Pressable style={estilos.boton} onPress={() => aprobarResultadoTorneo(true)} disabled={enviando}>
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Aprobar resultado</Text>}
+          </Pressable>
+          <Pressable style={estilos.botonSecundario} onPress={() => setMostrarRechazo(true)} disabled={enviando}>
+            <Text style={estilos.botonSecundarioTexto}>Rechazar resultado</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {puedeAprobarResultado && mostrarRechazo && (
+        <View style={estilos.tarjeta}>
+          <Text style={estilos.etiqueta}>¿Por qué se rechaza? (opcional)</Text>
+          <TextInput
+            style={estilos.textarea}
+            multiline
+            placeholder="Ej. el marcador no coincide con lo jugado..."
+            placeholderTextColor={colores.textoSecundario}
+            value={motivoRechazo}
+            onChangeText={setMotivoRechazo}
+          />
+          <View style={estilos.filaBotonesFormulario}>
+            <Pressable onPress={() => setMostrarRechazo(false)} disabled={enviando}>
+              <Text style={estilos.cancelar}>Cancelar</Text>
+            </Pressable>
+            <Pressable style={[estilos.boton, { flex: 1 }]} onPress={() => aprobarResultadoTorneo(false)} disabled={enviando}>
+              {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Rechazar</Text>}
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -330,12 +449,29 @@ export default function DetallePartido() {
         </View>
       )}
 
+      {puedeRescatar && (
+        <View style={estilos.tarjeta}>
+          <Text style={estilos.etiqueta}>Este partido venció sin que nadie lo confirmara</Text>
+          <Text style={estilos.avisoTextoIzq}>
+            Puedes rescatarlo y aplicar el marcador reportado, como si se hubiera confirmado a tiempo.
+          </Text>
+          <Pressable style={estilos.boton} onPress={rescatarPartido} disabled={enviando}>
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Rescatar partido</Text>}
+          </Pressable>
+        </View>
+      )}
+
       {puedoAdministrarResultado && !mostrarEdicion && (
         <View style={estilos.tarjeta}>
           <Text style={estilos.etiqueta}>Panel de administración</Text>
           <Pressable style={estilos.botonAdmin} onPress={abrirEdicion} disabled={enviando}>
             <Text style={estilos.botonAdminTexto}>Editar resultado</Text>
           </Pressable>
+          {puedePromoverOficial && (
+            <Pressable style={[estilos.botonAdmin, { marginTop: 10 }]} onPress={confirmarPromocion} disabled={enviando}>
+              <Text style={estilos.botonAdminTexto}>Promover a oficial</Text>
+            </Pressable>
+          )}
           <Pressable style={[estilos.botonSecundario, { marginTop: 10 }]} onPress={confirmarAnulacion} disabled={enviando}>
             <Text style={estilos.botonSecundarioTexto}>Anular resultado</Text>
           </Pressable>
@@ -405,6 +541,7 @@ const estilos = StyleSheet.create({
   titulo: { fontSize: 22, fontWeight: '800', color: colores.texto, textAlign: 'center' },
   torneoTag: { color: colores.navy, fontWeight: '700', marginTop: 6, fontSize: 12 },
   avisoTexto: { color: colores.textoSecundario, marginTop: 12, textAlign: 'center' },
+  avisoTextoIzq: { color: colores.textoSecundario, fontSize: 12, marginTop: 4, marginBottom: 4 },
   filaFecha: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   fecha: { color: colores.textoSecundario, fontSize: 12 },
   marcador: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24, justifyContent: 'center' },

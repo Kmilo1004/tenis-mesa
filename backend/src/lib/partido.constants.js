@@ -3,6 +3,7 @@ const INCLUYE_JUGADORES = {
   jugadorA: { select: { id: true, nombre: true } },
   jugadorB: { select: { id: true, nombre: true } },
   ganador: { select: { id: true, nombre: true } },
+  reportador: { select: { id: true, nombre: true } },
 };
 
 module.exports = { INCLUYE_JUGADORES };

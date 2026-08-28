@@ -18,6 +18,7 @@ export default function Perfil() {
   const [buscandoActualizacion, setBuscandoActualizacion] = useState(false);
   const [actualizacionDisponible, setActualizacionDisponible] = useState(null);
   const [estadisticas, setEstadisticas] = useState(null);
+  const [totalPorAprobar, setTotalPorAprobar] = useState(0);
 
   useEffect(() => {
     if (!cargando && !usuario) {
@@ -32,6 +33,18 @@ export default function Perfil() {
         .then(setEstadisticas)
         .catch(() => {
           // no es crítico: si falla, la tarjeta de estadísticas simplemente no se muestra
+        });
+
+      const esAdmin = usuario.roles?.some((r) => r.rol === 'administrador');
+      if (!esAdmin) return;
+      Promise.all([
+        apiFetch('/partidos?estado=pendiente_aprobacion', { token }),
+        apiFetch('/partidos?estado=en_revision', { token }),
+        apiFetch('/partidos?estado=descartado', { token }),
+      ])
+        .then(([a, b, c]) => setTotalPorAprobar(a.length + b.length + c.filter((p) => p.tipoPartido === 'casual').length))
+        .catch(() => {
+          // no es crítico: si falla, simplemente no se muestra el contador
         });
     }, [usuario?.id, token]),
   );
@@ -194,6 +207,17 @@ export default function Perfil() {
         {esAdmin && (
           <View style={estilos.tarjeta}>
             <Text style={estilos.tarjetaTitulo}>ADMINISTRACIÓN</Text>
+            <Pressable style={estilos.filaEnlace} onPress={() => router.push('/aprobaciones')}>
+              <Ionicons name="checkmark-done-outline" size={20} color={colores.navy} />
+              <Text style={estilos.filaEnlaceTexto}>Por aprobar</Text>
+              {totalPorAprobar > 0 && (
+                <View style={estilos.contadorBadge}>
+                  <Text style={estilos.contadorBadgeTexto}>{totalPorAprobar}</Text>
+                </View>
+              )}
+              <Ionicons name="chevron-forward" size={18} color={colores.textoSecundario} />
+            </Pressable>
+            <View style={estilos.divisor} />
             <Pressable style={estilos.filaEnlace} onPress={() => router.push('/reportes')}>
               <Ionicons name="bar-chart-outline" size={20} color={colores.navy} />
               <Text style={estilos.filaEnlaceTexto}>Ver reportes</Text>
@@ -263,6 +287,8 @@ const estilos = StyleSheet.create({
   eloEtiqueta: { fontSize: 12, color: colores.textoSecundario, marginTop: 4 },
   filaEnlace: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   filaEnlaceTexto: { flex: 1, fontSize: 14, color: colores.texto, fontWeight: '600' },
+  contadorBadge: { backgroundColor: colores.error, borderRadius: radios.pildora, paddingHorizontal: 8, paddingVertical: 2, marginRight: 4 },
+  contadorBadgeTexto: { color: colores.textoClaro, fontSize: 11, fontWeight: '800' },
   divisor: { height: 1, backgroundColor: colores.borde },
   botonSalir: {
     flexDirection: 'row',

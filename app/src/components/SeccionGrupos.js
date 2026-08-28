@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput } from 'react-native';
+import { router } from 'expo-router';
 import { apiFetch } from '../api/client';
 import SelectorOpciones from './SelectorOpciones';
+
+const ETIQUETAS_ESTADO_PARTIDO = {
+  por_definir: 'Por definir',
+  pendiente: 'Pendiente',
+  pendiente_aprobacion: 'Por aprobar',
+  confirmado: 'Confirmado',
+  en_revision: 'En disputa',
+  anulado: 'Anulado',
+};
 
 const METODOS = [
   { valor: 'aleatorio', etiqueta: 'Aleatorio' },
@@ -12,6 +22,7 @@ const METODOS = [
 export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, token, onCambio }) {
   const [grupos, setGrupos] = useState([]);
   const [tablas, setTablas] = useState({});
+  const [partidosPorGrupo, setPartidosPorGrupo] = useState({});
   const [cargando, setCargando] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
@@ -34,6 +45,11 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
           datosGrupos.map(async (g) => [g.id, (await apiFetch(`/torneos/${torneoId}/grupos/${g.id}/tabla`)).tabla]),
         );
         setTablas(Object.fromEntries(entradas));
+
+        const entradasPartidos = await Promise.all(
+          datosGrupos.map(async (g) => [g.id, (await apiFetch(`/torneos/${torneoId}/grupos/${g.id}/partidos`)).partidos]),
+        );
+        setPartidosPorGrupo(Object.fromEntries(entradasPartidos));
       }
     } catch (err) {
       setError(err.message);
@@ -190,6 +206,19 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
               ))}
             </View>
           )}
+
+          {publicado && partidosPorGrupo[g.id]?.length > 0 && (
+            <View style={estilos.listaPartidos}>
+              {partidosPorGrupo[g.id].map((p) => (
+                <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}`)}>
+                  <Text style={estilos.filaPartidoTexto}>
+                    {p.jugadorA?.nombre || 'Por definir'} vs {p.jugadorB?.nombre || 'Por definir'}
+                  </Text>
+                  <Text style={estilos.filaPartidoEstado}>{ETIQUETAS_ESTADO_PARTIDO[p.estado] || p.estado}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
       ))}
 
@@ -260,4 +289,16 @@ const estilos = StyleSheet.create({
   filaTabla: { flexDirection: 'row', paddingVertical: 3 },
   celda: { width: 40, fontSize: 11, color: '#555', textAlign: 'center' },
   celdaNombre: { flex: 1, width: 'auto', textAlign: 'left', fontWeight: '600', color: '#333' },
+  listaPartidos: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8, gap: 6 },
+  filaPartido: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  filaPartidoTexto: { fontSize: 12.5, color: '#333', flex: 1, marginRight: 8 },
+  filaPartidoEstado: { fontSize: 11, color: '#b45309', fontWeight: '600' },
 });

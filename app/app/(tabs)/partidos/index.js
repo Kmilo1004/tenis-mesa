@@ -17,6 +17,7 @@ const OPCIONES_ORDEN = [
 
 const ETIQUETAS_ESTADO = {
   pendiente: { texto: 'Pendiente de confirmar', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  pendiente_aprobacion: { texto: 'Pendiente de aprobación', color: colores.advertencia, fondo: colores.advertenciaFondo },
   confirmado: { texto: 'Confirmado', color: colores.exito, fondo: colores.exitoFondo },
   descartado: { texto: 'Descartado', color: colores.textoSecundario, fondo: colores.gris },
   en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
@@ -57,9 +58,10 @@ export default function ListaPartidos() {
 
   // Los pendientes de confirmar siempre quedan primero, sin importar el criterio elegido; dentro
   // de cada grupo (pendientes / resto) se ordena según ese criterio.
+  const ESTADOS_PENDIENTES = ['pendiente', 'pendiente_aprobacion'];
   const partidosOrdenados = [...partidos].sort((a, b) => {
-    const pendienteA = a.estado === 'pendiente' ? 0 : 1;
-    const pendienteB = b.estado === 'pendiente' ? 0 : 1;
+    const pendienteA = ESTADOS_PENDIENTES.includes(a.estado) ? 0 : 1;
+    const pendienteB = ESTADOS_PENDIENTES.includes(b.estado) ? 0 : 1;
     if (pendienteA !== pendienteB) return pendienteA - pendienteB;
 
     if (criterioOrden === 'jugador') {
