@@ -1,9 +1,23 @@
-// Notificaciones in-app (sección 9: sin push en v1). `client` puede ser `prisma` o el `tx`
-// de una transacción en curso.
+const prisma = require('./prisma');
+const { enviarPush } = require('./push.service');
+
+const TITULOS_PUSH = {
+  confirmacion_pendiente: 'Resultado pendiente de confirmar',
+  partido_proximo: 'Partido listo para jugarse',
+  cambio_ranking: 'Cambio en tu ranking',
+  disputa: 'Disputa de resultado',
+  torneo: 'Torneo',
+};
+
+// Notificaciones in-app + push real. `client` puede ser `prisma` o el `tx` de una transacción en
+// curso (por eso el envío de push se hace con `prisma` directo, sin await, para no alargar la
+// transacción ni bloquear al que llama si el envío del push tarda o falla).
 function crearNotificacion(client, { usuarioId, tipo, mensaje, referenciaId }) {
-  return client.notificacion.create({
+  const notificacion = client.notificacion.create({
     data: { usuarioId, tipo, mensaje, referenciaId: referenciaId ?? null },
   });
+  enviarPush(prisma, { usuarioId, titulo: TITULOS_PUSH[tipo], mensaje });
+  return notificacion;
 }
 
 // RF-21: avisa a ambos jugadores que ya tienen un partido de torneo listo para jugarse

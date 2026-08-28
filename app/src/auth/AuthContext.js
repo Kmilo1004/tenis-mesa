@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { apiFetch } from '../api/client';
 import { guardarCache, leerCache } from '../lib/cache';
 import { obtenerToken, guardarToken, eliminarToken } from '../lib/almacenToken';
+import { registrarNotificacionesPush, borrarTokenPush } from '../lib/pushNotifications';
 
 const CLAVE_TOKEN = 'tenismesa_token';
 const CLAVE_CACHE_PERFIL = 'perfil';
@@ -26,6 +27,7 @@ export function AuthProvider({ children }) {
       setUsuario(perfil);
       setSinConexion(false);
       guardarCache(CLAVE_CACHE_PERFIL, perfil);
+      registrarNotificacionesPush(tokenGuardado);
     } catch (error) {
       if (error.esErrorDeRed) {
         // RNF-01: sin conexión — mantenemos la sesión con el último perfil que se cargó, en vez
@@ -59,6 +61,7 @@ export function AuthProvider({ children }) {
     setUsuario(datos.usuario);
     setSinConexion(false);
     guardarCache(CLAVE_CACHE_PERFIL, datos.usuario);
+    registrarNotificacionesPush(datos.token);
   }
 
   async function registrarse(campos) {
@@ -71,9 +74,11 @@ export function AuthProvider({ children }) {
     setUsuario(datos.usuario);
     setSinConexion(false);
     guardarCache(CLAVE_CACHE_PERFIL, datos.usuario);
+    registrarNotificacionesPush(datos.token);
   }
 
   async function cerrarSesion() {
+    if (token) await borrarTokenPush(token);
     await eliminarToken(CLAVE_TOKEN);
     setToken(null);
     setUsuario(null);

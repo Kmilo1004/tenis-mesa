@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
@@ -25,7 +25,7 @@ const ETIQUETAS_ESTADO = {
 };
 
 export default function DetallePartido() {
-  const { id } = useLocalSearchParams();
+  const { id, desdeTorneo } = useLocalSearchParams();
   const { usuario, token } = useAuth();
 
   const [partido, setPartido] = useState(null);
@@ -60,9 +60,22 @@ export default function DetallePartido() {
     }, [cargar]),
   );
 
+  const encabezadoVolverATorneo = desdeTorneo && (
+    <Stack.Screen
+      options={{
+        headerLeft: () => (
+          <Pressable onPress={() => router.replace(`/torneos/${desdeTorneo}`)} hitSlop={10} style={{ paddingRight: 12 }}>
+            <Ionicons name="arrow-back" size={22} color={colores.textoClaro} />
+          </Pressable>
+        ),
+      }}
+    />
+  );
+
   if (cargando || !partido || !usuario) {
     return (
       <View style={estilos.centrado}>
+        {encabezadoVolverATorneo}
         <ActivityIndicator color={colores.navy} />
       </View>
     );
@@ -70,6 +83,7 @@ export default function DetallePartido() {
 
   const soyJugadorA = partido.jugadorA?.id === usuario.id;
   const rival = soyJugadorA ? partido.jugadorB : partido.jugadorA;
+  const esParticipante = partido.jugadorA?.id === usuario.id || partido.jugadorB?.id === usuario.id;
   const esPartidoTorneo = Boolean(partido.torneoId);
   const esAdminOArbitro = usuario.roles?.some((r) => r.rol === 'administrador' || r.rol === 'arbitro');
   const puedoResponder = !esPartidoTorneo && partido.estado === 'pendiente' && partido.registradoPor !== usuario.id;
@@ -260,12 +274,17 @@ export default function DetallePartido() {
 
   return (
     <ScrollView contentContainerStyle={estilos.contenedor}>
+      {encabezadoVolverATorneo}
       <View style={estilos.tarjetaPrincipal}>
         <View style={[estilos.badge, { backgroundColor: etiquetaEstado.fondo, alignSelf: 'center' }]}>
           <Text style={[estilos.badgeTexto, { color: etiquetaEstado.color }]}>{etiquetaEstado.texto}</Text>
         </View>
 
-        <Text style={estilos.titulo}>vs {rival?.nombre || 'Por definir'}</Text>
+        <Text style={estilos.titulo}>
+          {esParticipante
+            ? `vs ${rival?.nombre || 'Por definir'}`
+            : `${partido.jugadorA?.nombre || 'Por definir'} vs ${partido.jugadorB?.nombre || 'Por definir'}`}
+        </Text>
         {esPartidoTorneo && <Text style={estilos.torneoTag}>{partido.ronda || 'Fase de grupos'}</Text>}
         {partido.promovidoAOficial && <Text style={estilos.torneoTag}>Promovido a oficial · cuenta para Ranking Interno</Text>}
         <View style={estilos.filaFecha}>
@@ -278,21 +297,33 @@ export default function DetallePartido() {
         )}
 
         {partido.sets.length > 0 && (
-          <View style={estilos.marcador}>
-            {partido.sets.map((s, i) => {
-              const misPuntos = soyJugadorA ? s.puntosJugadorA : s.puntosJugadorB;
-              const puntosRival = soyJugadorA ? s.puntosJugadorB : s.puntosJugadorA;
-              const gane = misPuntos > puntosRival;
-              return (
-                <View key={s.id} style={[estilos.set, gane && estilos.setGanado]}>
-                  <Text style={estilos.setNumero}>Set {i + 1}</Text>
-                  <Text style={[estilos.setPuntos, gane && estilos.setPuntosGanado]}>{misPuntos}</Text>
-                  <Text style={estilos.setGuion}>-</Text>
-                  <Text style={estilos.setPuntos}>{puntosRival}</Text>
-                </View>
-              );
-            })}
-          </View>
+          <>
+            {!esParticipante && (
+              <View style={estilos.filaNombresMarcador}>
+                <Text style={estilos.nombreMarcador} numberOfLines={1}>
+                  {partido.jugadorA?.nombre || 'Jugador A'}
+                </Text>
+                <Text style={estilos.nombreMarcador} numberOfLines={1}>
+                  {partido.jugadorB?.nombre || 'Jugador B'}
+                </Text>
+              </View>
+            )}
+            <View style={estilos.marcador}>
+              {partido.sets.map((s, i) => {
+                const puntosIzq = esParticipante ? (soyJugadorA ? s.puntosJugadorA : s.puntosJugadorB) : s.puntosJugadorA;
+                const puntosDer = esParticipante ? (soyJugadorA ? s.puntosJugadorB : s.puntosJugadorA) : s.puntosJugadorB;
+                const gane = puntosIzq > puntosDer;
+                return (
+                  <View key={s.id} style={[estilos.set, gane && estilos.setGanado]}>
+                    <Text style={estilos.setNumero}>Set {i + 1}</Text>
+                    <Text style={[estilos.setPuntos, gane && estilos.setPuntosGanado]}>{puntosIzq}</Text>
+                    <Text style={estilos.setGuion}>-</Text>
+                    <Text style={estilos.setPuntos}>{puntosDer}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </>
         )}
 
         {partido.ganador && (
@@ -544,7 +575,9 @@ const estilos = StyleSheet.create({
   avisoTextoIzq: { color: colores.textoSecundario, fontSize: 12, marginTop: 4, marginBottom: 4 },
   filaFecha: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   fecha: { color: colores.textoSecundario, fontSize: 12 },
-  marcador: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24, justifyContent: 'center' },
+  filaNombresMarcador: { flexDirection: 'row', gap: 40, marginTop: 20, justifyContent: 'center' },
+  nombreMarcador: { fontSize: 12, fontWeight: '700', color: colores.textoSecundario, maxWidth: 130 },
+  marcador: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10, justifyContent: 'center' },
   set: {
     flexDirection: 'row',
     alignItems: 'center',

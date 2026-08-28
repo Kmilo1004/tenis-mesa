@@ -71,6 +71,22 @@ router.get('/usuarios/me', verificarToken, async (req, res, next) => {
   }
 });
 
+// PUT /usuarios/me/push-token — guarda o actualiza el token de notificaciones push del
+// dispositivo actual. body: { token } (o { token: null } para borrarlo, ej. al cerrar sesión).
+router.put('/usuarios/me/push-token', verificarToken, async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (token !== null && typeof token !== 'string') {
+      return res.status(400).json({ error: 'token debe ser un string, o null para borrarlo' });
+    }
+
+    await prisma.usuario.update({ where: { id: req.usuarioId }, data: { pushToken: token || null } });
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+});
+
 // GET /usuarios/buscar?q= — cualquier usuario autenticado: encontrar un rival por nombre
 // para registrar un partido casual (RF-05 necesita poder elegir al rival, no solo su UUID).
 router.get('/usuarios/buscar', verificarToken, async (req, res, next) => {

@@ -36,6 +36,7 @@ model Usuario {
   fechaRegistro     DateTime @default(now()) @map("fecha_registro")
   consentimientoDatos   Boolean   @default(false) @map("consentimiento_datos")
   fechaConsentimiento   DateTime? @map("fecha_consentimiento")
+  pushToken             String?   @map("push_token")
 
   roles UsuarioRol[]
 

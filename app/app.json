@@ -4,7 +4,7 @@
     "slug": "tenis-mesa-app",
     "owner": "kmilo.al",
     "scheme": "tenismesa",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/Logo.jpeg",
     "userInterfaceStyle": "light",
@@ -32,6 +32,13 @@
           "imageWidth": 220,
           "resizeMode": "contain",
           "backgroundColor": "#0B1E4D"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0B1E4D",
+          "defaultChannel": "default"
         }
       ]
     ],

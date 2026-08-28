@@ -777,4 +777,65 @@ router.get('/torneos/:id/grupos/:grupoId/partidos', async (req, res, next) => {
   }
 });
 
+// PATCH /torneos/{id}/cuadro/{partidoId} — intercambia quién ocupa un cruce de la primera ronda
+// del cuadro de eliminación directa con el jugador de otro cruce, antes de que se jueguen. Solo
+// admin. Body: { slot: 'A'|'B', nuevoJugadorId }.
+router.patch('/torneos/:id/cuadro/:partidoId', verificarToken, requiereRol('administrador'), async (req, res, next) => {
+  try {
+    const { slot, nuevoJugadorId } = req.body;
+    if (!['A', 'B'].includes(slot) || !nuevoJugadorId) {
+      return res.status(400).json({ error: 'slot ("A" o "B") y nuevoJugadorId son obligatorios' });
+    }
+
+    const partido = await prisma.partido.findFirst({ where: { id: req.params.partidoId, torneoId: req.params.id } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado en este torneo' });
+    }
+    if (partido.grupoId || partido.nivelRonda !== 0) {
+      return res.status(400).json({ error: 'Solo se pueden intercambiar cruces de la primera ronda del cuadro' });
+    }
+    if (partido.estado !== 'pendiente') {
+      return res.status(409).json({ error: `Este cruce ya no se puede modificar (estado actual: ${partido.estado})` });
+    }
+
+    const campoSlot = slot === 'A' ? 'jugadorAId' : 'jugadorBId';
+    const jugadorActual = partido[campoSlot];
+    if (jugadorActual === nuevoJugadorId) {
+      return res.status(400).json({ error: 'Ese jugador ya está en ese cruce' });
+    }
+
+    const otroPartido = await prisma.partido.findFirst({
+      where: {
+        torneoId: req.params.id,
+        grupoId: null,
+        nivelRonda: 0,
+        estado: 'pendiente',
+        id: { not: partido.id },
+        OR: [{ jugadorAId: nuevoJugadorId }, { jugadorBId: nuevoJugadorId }],
+      },
+    });
+    if (!otroPartido) {
+      return res.status(400).json({ error: 'Ese jugador no está disponible en otro cruce de la primera ronda para intercambiar' });
+    }
+    const otroCampoSlot = otroPartido.jugadorAId === nuevoJugadorId ? 'jugadorAId' : 'jugadorBId';
+
+    const [partidoActualizado] = await prisma.$transaction([
+      prisma.partido.update({ where: { id: partido.id }, data: { [campoSlot]: nuevoJugadorId }, include: INCLUYE_JUGADORES }),
+      prisma.partido.update({ where: { id: otroPartido.id }, data: { [otroCampoSlot]: jugadorActual } }),
+    ]);
+
+    await registrarAuditoria(prisma, {
+      usuarioId: req.usuarioId,
+      accion: 'intercambiar_cruce_cuadro',
+      entidadTipo: 'partido',
+      entidadId: partido.id,
+      detalle: { slot, jugadorAnterior: jugadorActual, jugadorNuevo: nuevoJugadorId, otroPartidoId: otroPartido.id },
+    });
+
+    return res.status(200).json(partidoActualizado);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;
