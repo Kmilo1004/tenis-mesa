@@ -62,7 +62,7 @@ export default function AgregarInvitado() {
 
         {error && <Text style={estilos.error}>{error}</Text>}
 
-        <Pressable style={estilos.boton} onPress={enviar} disabled={!listo || enviando}>
+        <Pressable style={[estilos.boton, (!listo || enviando) && estilos.botonDeshabilitado]} onPress={enviar} disabled={!listo || enviando}>
           {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Agregar e inscribir</Text>}
         </Pressable>
       </ScrollView>
@@ -75,5 +75,6 @@ const estilos = StyleSheet.create({
   subtitulo: { fontSize: 13, color: '#666', marginBottom: 20 },
   error: { color: '#dc2626', marginTop: 8, textAlign: 'center' },
   boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: '#fff', fontWeight: '700' },
 });

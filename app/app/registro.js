@@ -80,7 +80,7 @@ export default function Registro() {
 
         {error && <Text style={estilos.error}>{error}</Text>}
 
-        <Pressable style={estilos.boton} onPress={enviar} disabled={enviando || !listo}>
+        <Pressable style={[estilos.boton, (enviando || !listo) && estilos.botonDeshabilitado]} onPress={enviar} disabled={enviando || !listo}>
           {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Crear cuenta</Text>}
         </Pressable>
 
@@ -97,6 +97,7 @@ const estilos = StyleSheet.create({
   titulo: { fontSize: 24, fontWeight: '800', color: colores.texto, marginBottom: 4 },
   subtitulo: { fontSize: 13, color: colores.textoSecundario, marginBottom: 20, textAlign: 'center' },
   boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, width: '100%', alignItems: 'center', marginTop: 8 },
+  botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
   error: { color: colores.error, marginBottom: 8, textAlign: 'center' },
   enlace: { marginTop: 20, color: colores.navy, fontWeight: '600' },

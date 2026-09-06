@@ -120,7 +120,7 @@ export default function EditarTorneo() {
 
         {error && <Text style={estilos.error}>{error}</Text>}
 
-        <Pressable style={estilos.boton} onPress={guardar} disabled={!listo || enviando}>
+        <Pressable style={[estilos.boton, (!listo || enviando) && estilos.botonDeshabilitado]} onPress={guardar} disabled={!listo || enviando}>
           {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Guardar cambios</Text>}
         </Pressable>
         <Pressable onPress={() => router.back()} disabled={enviando}>
@@ -136,6 +136,7 @@ const estilos = StyleSheet.create({
   contenedor: { padding: 20, paddingBottom: 48 },
   error: { color: '#dc2626', marginTop: 8, textAlign: 'center' },
   boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 12 },
+  botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: '#fff', fontWeight: '700' },
   cancelar: { textAlign: 'center', color: '#666', marginTop: 16 },
 });

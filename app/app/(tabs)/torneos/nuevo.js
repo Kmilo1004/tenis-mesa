@@ -85,7 +85,7 @@ export default function NuevoTorneo() {
 
         {error && <Text style={estilos.error}>{error}</Text>}
 
-        <Pressable style={estilos.boton} onPress={enviar} disabled={!listo || enviando}>
+        <Pressable style={[estilos.boton, (!listo || enviando) && estilos.botonDeshabilitado]} onPress={enviar} disabled={!listo || enviando}>
           {enviando ? <ActivityIndicator color="#fff" /> : <Text style={estilos.botonTexto}>Crear torneo</Text>}
         </Pressable>
       </ScrollView>
@@ -97,5 +97,6 @@ const estilos = StyleSheet.create({
   contenedor: { padding: 20, paddingBottom: 48 },
   error: { color: '#dc2626', marginTop: 8, textAlign: 'center' },
   boton: { backgroundColor: '#0B1E4D', paddingVertical: 14, borderRadius: 8, alignItems: 'center', marginTop: 12 },
+  botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: '#fff', fontWeight: '700' },
 });

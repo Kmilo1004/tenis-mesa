@@ -101,7 +101,7 @@ export default function NuevoPartido() {
 
         {error && <Text style={estilos.error}>{error}</Text>}
 
-        <Pressable style={estilos.boton} onPress={enviar} disabled={!listo || enviando}>
+        <Pressable style={[estilos.boton, (!listo || enviando) && estilos.botonDeshabilitado]} onPress={enviar} disabled={!listo || enviando}>
           {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Registrar partido</Text>}
         </Pressable>
       </ScrollView>
@@ -127,5 +127,6 @@ const estilos = StyleSheet.create({
   textoVs: { fontSize: 12, fontWeight: '800', color: colores.textoSecundario, letterSpacing: 1 },
   error: { color: colores.error, marginTop: 4, marginBottom: 8, textAlign: 'center' },
   boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 4 },
+  botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
 });
