@@ -7,7 +7,7 @@ const router = express.Router();
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
   version: '2.0.0',
-  url: 'https://expo.dev/artifacts/eas/TGisF8R6pWLrI4odswCDnbu2i3TUyoU8J-cjNfGNMK8.apk',
+  url: 'https://expo.dev/artifacts/eas/fBy0xNW_WHHDEp2zXKmE8QJeJxFnu0YMsC2kFFrcsto.apk',
   notas: 'Tabla de grupos en cuadrícula cruzada también en la app (igual al PDF), recuperación de contraseña por correo y restablecimiento manual desde el panel de admin, y una corrección para que Android bloquee instalar una versión vieja encima de una más nueva.',
 };
 
