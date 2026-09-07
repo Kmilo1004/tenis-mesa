@@ -90,7 +90,7 @@ export default function NuevoPartido() {
         </View>
 
         <View style={estilos.tarjeta}>
-          <Text style={estilos.etiqueta}>Marcador por set (al mejor de 5 o 7)</Text>
+          <Text style={estilos.etiqueta}>Marcador por set (al mejor de 5)</Text>
           <EditorSets
             sets={sets}
             onCambiar={setSets}
