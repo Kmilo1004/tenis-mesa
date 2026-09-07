@@ -576,7 +576,7 @@ export default function DetallePartido() {
 
       {esParticipante && partido.estado === 'confirmado' && (
         <View style={estilos.tarjeta}>
-          <Text style={estilos.etiqueta}>Tu observación privada</Text>
+          <Text style={estilos.etiqueta}>Observación</Text>
           <Text style={estilos.avisoTextoIzq}>Solo tú puedes ver esto — ni tu rival ni un administrador la ven.</Text>
           <TextInput
             style={estilos.textarea}
@@ -589,14 +589,17 @@ export default function DetallePartido() {
           />
           <Pressable
             style={[
-              estilos.boton,
-              { marginTop: 10 },
+              estilos.botonIconoGuardar,
               (notaGuardando || notaCargando || notaPersonal === notaOriginal) && estilos.botonDeshabilitado,
             ]}
             onPress={guardarNota}
             disabled={notaGuardando || notaCargando || notaPersonal === notaOriginal}
           >
-            {notaGuardando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Guardar observación</Text>}
+            {notaGuardando ? (
+              <ActivityIndicator color={colores.textoClaro} size="small" />
+            ) : (
+              <Ionicons name="pencil" size={18} color={colores.textoClaro} />
+            )}
           </Pressable>
         </View>
       )}
@@ -664,6 +667,16 @@ const estilos = StyleSheet.create({
   acciones: { width: '100%', marginTop: 20, gap: 10 },
   boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
   botonDeshabilitado: { opacity: 0.5 },
+  botonIconoGuardar: {
+    backgroundColor: colores.navy,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-end',
+    marginTop: 10,
+  },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
   botonSecundario: { paddingVertical: 12, alignItems: 'center' },
   botonSecundarioTexto: { color: colores.error, fontWeight: '600' },
