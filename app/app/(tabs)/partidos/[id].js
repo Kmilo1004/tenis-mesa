@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
@@ -309,8 +309,9 @@ export default function DetallePartido() {
   }
 
   return (
-    <ScrollView contentContainerStyle={estilos.contenedor}>
-      {encabezadoVolverATorneo}
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={estilos.contenedor}>
+        {encabezadoVolverATorneo}
       <View style={estilos.tarjetaPrincipal}>
         <View style={[estilos.badge, { backgroundColor: etiquetaEstado.fondo, alignSelf: 'center' }]}>
           <Text style={[estilos.badgeTexto, { color: etiquetaEstado.color }]}>{etiquetaEstado.texto}</Text>
@@ -577,11 +578,11 @@ export default function DetallePartido() {
       {esParticipante && partido.estado === 'confirmado' && (
         <View style={estilos.tarjeta}>
           <Text style={estilos.etiqueta}>Observación</Text>
-          <Text style={estilos.avisoTextoIzq}>Solo tú puedes ver esto — ni tu rival ni un administrador la ven.</Text>
+          <Text style={estilos.avisoTextoIzq}>Solo tú puedes ver esto.</Text>
           <TextInput
             style={estilos.textarea}
             multiline
-            placeholder="Ej. me faltó pegarle más liftado al saque..."
+            placeholder="Ej. me faltó pensar una estrategia..."
             placeholderTextColor={colores.textoSecundario}
             value={notaPersonal}
             onChangeText={setNotaPersonal}
@@ -603,7 +604,8 @@ export default function DetallePartido() {
           </Pressable>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
