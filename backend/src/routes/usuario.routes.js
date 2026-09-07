@@ -1,4 +1,6 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { registrarAuditoria } = require('../lib/auditoria.service');
 const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
@@ -204,6 +206,47 @@ router.delete('/usuarios/:id/roles/:rol', verificarToken, requiereRol('administr
 
     const roles = await prisma.usuarioRol.findMany({ where: { usuarioId: usuario.id }, select: { rol: true } });
     return res.status(200).json({ id: usuario.id, roles: roles.map((r) => r.rol) });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+const ALFABETO_TEMPORAL = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'; // sin 0/O/1/I/l, para evitar confusiones al dictarla
+function generarPasswordTemporal(longitud = 10) {
+  return Array.from(crypto.randomFillSync(new Uint8Array(longitud)))
+    .map((n) => ALFABETO_TEMPORAL[n % ALFABETO_TEMPORAL.length])
+    .join('');
+}
+
+// POST /usuarios/{id}/restablecer-password — solo admin: genera una contraseña temporal nueva
+// para un usuario interno (ej. porque no tiene acceso a su correo) y la devuelve en la respuesta
+// para que el admin se la pueda compartir por otro medio (WhatsApp, en persona, etc.).
+router.post('/usuarios/:id/restablecer-password', verificarToken, requiereRol('administrador'), async (req, res, next) => {
+  try {
+    const usuario = await prisma.usuario.findUnique({ where: { id: req.params.id } });
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    if (usuario.tipo !== 'interno' || !usuario.correo) {
+      return res.status(400).json({ error: 'Este usuario no tiene contraseña propia (es un jugador externo/invitado)' });
+    }
+
+    const passwordTemporal = generarPasswordTemporal();
+    const passwordHash = await bcrypt.hash(passwordTemporal, 10);
+
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { passwordHash, resetTokenHash: null, resetTokenExpira: null },
+    });
+
+    await registrarAuditoria(prisma, {
+      usuarioId: req.usuarioId,
+      accion: 'restablecer_password',
+      entidadTipo: 'usuario',
+      entidadId: usuario.id,
+    });
+
+    return res.status(200).json({ passwordTemporal });
   } catch (error) {
     return next(error);
   }

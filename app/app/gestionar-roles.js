@@ -18,6 +18,7 @@ export default function GestionarRoles() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [actualizando, setActualizando] = useState(null); // `${usuarioId}:${rol}`
+  const [restableciendoId, setRestableciendoId] = useState(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -55,6 +56,30 @@ export default function GestionarRoles() {
     } finally {
       setActualizando(null);
     }
+  }
+
+  function restablecerPassword(item) {
+    Alert.alert(
+      '¿Restablecer la contraseña?',
+      `Se le va a generar una contraseña temporal nueva a ${item.nombre}. Tendrás que compartírsela tú por otro medio.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Restablecer',
+          onPress: async () => {
+            setRestableciendoId(item.id);
+            try {
+              const { passwordTemporal } = await apiFetch(`/usuarios/${item.id}/restablecer-password`, { method: 'POST', token });
+              Alert.alert('Contraseña temporal generada', `${item.nombre}: ${passwordTemporal}\n\nCompártesela para que inicie sesión y la cambie.`);
+            } catch (err) {
+              Alert.alert('No se pudo restablecer', err.message);
+            } finally {
+              setRestableciendoId(null);
+            }
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -119,6 +144,18 @@ export default function GestionarRoles() {
                   })}
                 </View>
                 {soyYo && <Text style={estilos.notaPropia}>No puedes modificar tu propio rol de administrador</Text>}
+
+                <Pressable
+                  style={estilos.enlaceRestablecer}
+                  onPress={() => restablecerPassword(item)}
+                  disabled={restableciendoId === item.id}
+                >
+                  {restableciendoId === item.id ? (
+                    <ActivityIndicator size="small" color={colores.error} />
+                  ) : (
+                    <Text style={estilos.textoRestablecer}>Restablecer contraseña</Text>
+                  )}
+                </Pressable>
               </View>
             );
           }}
@@ -172,4 +209,6 @@ const estilos = StyleSheet.create({
   chipTexto: { color: colores.texto, fontWeight: '600', fontSize: 13 },
   chipTextoActivo: { color: colores.textoClaro, fontWeight: '600', fontSize: 13 },
   notaPropia: { fontSize: 11, color: colores.textoSecundario, marginTop: 8, fontStyle: 'italic' },
+  enlaceRestablecer: { marginTop: 10, alignItems: 'center', paddingVertical: 4 },
+  textoRestablecer: { fontSize: 12.5, color: colores.error, fontWeight: '600' },
 });

@@ -60,8 +60,8 @@ export default function Login() {
           <Link href="/registro" style={estilos.enlace}>
             ¿No tienes cuenta? Regístrate
           </Link>
-          <Link href="/salud" style={estilos.enlaceSecundario}>
-            ¿Problemas de conexión?
+          <Link href="/olvide-password" style={estilos.enlaceSecundario}>
+            ¿Olvidaste tu contraseña?
           </Link>
         </View>
       </ScrollView>

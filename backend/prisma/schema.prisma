@@ -37,6 +37,8 @@ model Usuario {
   consentimientoDatos   Boolean   @default(false) @map("consentimiento_datos")
   fechaConsentimiento   DateTime? @map("fecha_consentimiento")
   pushToken             String?   @map("push_token")
+  resetTokenHash        String?   @map("reset_token_hash")
+  resetTokenExpira      DateTime? @map("reset_token_expira")
 
   roles UsuarioRol[]
 
