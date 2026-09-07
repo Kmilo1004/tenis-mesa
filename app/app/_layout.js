@@ -14,6 +14,7 @@ export default function LayoutRaiz() {
             headerTintColor: colores.textoClaro,
             headerTitleStyle: { fontWeight: '700' },
             contentStyle: { backgroundColor: colores.fondo },
+            animation: 'slide_from_right',
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

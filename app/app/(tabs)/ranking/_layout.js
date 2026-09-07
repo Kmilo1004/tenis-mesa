@@ -10,6 +10,7 @@ export default function LayoutRanking() {
         headerTintColor: colores.textoClaro,
         headerTitleStyle: { fontWeight: '700' },
         contentStyle: { backgroundColor: colores.fondo },
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
