@@ -7,8 +7,8 @@ const router = express.Router();
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
   version: '1.0.9',
-  url: 'https://expo.dev/artifacts/eas/zaYU-ll2hxk1XMXzzIx6c2kwD5O6kFGZlF8H4CwdHTQ.apk',
-  notas: 'Se corrige el registro de notificaciones push en Android (faltaba la configuración de Firebase), la lista de inscritos de un torneo ahora se puede expandir/colapsar, y agregar un invitado ya no exige marcar la casilla de consentimiento.',
+  url: 'https://expo.dev/artifacts/eas/VrdTOkzuRyXGbub7_l1A7XhJ5bjK3huOhQvJR7IwcHw.apk',
+  notas: 'Reporte PDF de torneo rediseñado (tabla de grupos y árbol de eliminación), botones de formulario que avisan cuando falta algo por llenar, mejoras al mover jugadores entre grupos manualmente, y una corrección de estabilidad al confirmar el último partido de la fase de grupos.',
 };
 
 // GET /version — pública, la consulta la app para saber si hay un APK más nuevo disponible.
