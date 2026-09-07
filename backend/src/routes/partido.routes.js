@@ -567,4 +567,64 @@ router.patch('/partidos/:id', verificarToken, requiereRol('administrador'), asyn
   }
 });
 
+// GET /partidos/{id}/nota — observación privada del jugador sobre su propio partido ya
+// confirmado: solo la ve quien la escribió, ni el rival ni un admin/árbitro.
+router.get('/partidos/:id/nota', verificarToken, async (req, res, next) => {
+  try {
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (partido.jugadorAId !== req.usuarioId && partido.jugadorBId !== req.usuarioId) {
+      return res.status(403).json({ error: 'Solo puedes ver observaciones de tus propios partidos' });
+    }
+
+    const nota = await prisma.notaPartido.findUnique({
+      where: { partidoId_usuarioId: { partidoId: partido.id, usuarioId: req.usuarioId } },
+    });
+
+    return res.status(200).json({ texto: nota?.texto || '' });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PUT /partidos/{id}/nota — crea, actualiza o borra (con texto vacío) la observación privada.
+router.put('/partidos/:id/nota', verificarToken, async (req, res, next) => {
+  try {
+    const { texto } = req.body;
+    if (typeof texto !== 'string') {
+      return res.status(400).json({ error: 'texto es obligatorio (puede ser un string vacío para borrarla)' });
+    }
+
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (partido.jugadorAId !== req.usuarioId && partido.jugadorBId !== req.usuarioId) {
+      return res.status(403).json({ error: 'Solo puedes anotar observaciones en tus propios partidos' });
+    }
+    if (partido.estado !== 'confirmado') {
+      return res.status(409).json({ error: 'Solo puedes agregar observaciones a partidos ya confirmados' });
+    }
+
+    const textoLimpio = texto.trim();
+
+    if (!textoLimpio) {
+      await prisma.notaPartido.deleteMany({ where: { partidoId: partido.id, usuarioId: req.usuarioId } });
+      return res.status(200).json({ texto: '' });
+    }
+
+    const nota = await prisma.notaPartido.upsert({
+      where: { partidoId_usuarioId: { partidoId: partido.id, usuarioId: req.usuarioId } },
+      update: { texto: textoLimpio },
+      create: { partidoId: partido.id, usuarioId: req.usuarioId, texto: textoLimpio },
+    });
+
+    return res.status(200).json({ texto: nota.texto });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;

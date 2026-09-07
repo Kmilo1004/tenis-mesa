@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -41,6 +41,10 @@ export default function DetallePartido() {
   const [motivoAdmin, setMotivoAdmin] = useState('');
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [mostrarRechazo, setMostrarRechazo] = useState(false);
+  const [notaPersonal, setNotaPersonal] = useState('');
+  const [notaOriginal, setNotaOriginal] = useState('');
+  const [notaCargando, setNotaCargando] = useState(false);
+  const [notaGuardando, setNotaGuardando] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -59,6 +63,38 @@ export default function DetallePartido() {
       cargar();
     }, [cargar]),
   );
+
+  // Observación privada: solo se carga cuando el partido ya está confirmado y quien mira es uno
+  // de los dos jugadores (ni el rival ni un admin ven esta nota).
+  useEffect(() => {
+    if (!partido || !usuario || partido.estado !== 'confirmado') return;
+    const esParticipanteAhora = partido.jugadorA?.id === usuario.id || partido.jugadorB?.id === usuario.id;
+    if (!esParticipanteAhora) return;
+
+    setNotaCargando(true);
+    apiFetch(`/partidos/${id}/nota`, { token })
+      .then((datos) => {
+        setNotaPersonal(datos.texto);
+        setNotaOriginal(datos.texto);
+      })
+      .catch(() => {
+        // no es crítico: si falla, simplemente el campo queda vacío
+      })
+      .finally(() => setNotaCargando(false));
+  }, [partido?.id, partido?.estado, usuario?.id, id, token]);
+
+  async function guardarNota() {
+    setNotaGuardando(true);
+    try {
+      const datos = await apiFetch(`/partidos/${id}/nota`, { method: 'PUT', token, body: JSON.stringify({ texto: notaPersonal }) });
+      setNotaPersonal(datos.texto);
+      setNotaOriginal(datos.texto);
+    } catch (err) {
+      Alert.alert('No se pudo guardar', err.message);
+    } finally {
+      setNotaGuardando(false);
+    }
+  }
 
   const encabezadoVolverATorneo = desdeTorneo && (
     <Stack.Screen
@@ -537,6 +573,33 @@ export default function DetallePartido() {
           </View>
         </View>
       )}
+
+      {esParticipante && partido.estado === 'confirmado' && (
+        <View style={estilos.tarjeta}>
+          <Text style={estilos.etiqueta}>Tu observación privada</Text>
+          <Text style={estilos.avisoTextoIzq}>Solo tú puedes ver esto — ni tu rival ni un administrador la ven.</Text>
+          <TextInput
+            style={estilos.textarea}
+            multiline
+            placeholder="Ej. me faltó pegarle más liftado al saque..."
+            placeholderTextColor={colores.textoSecundario}
+            value={notaPersonal}
+            onChangeText={setNotaPersonal}
+            editable={!notaCargando}
+          />
+          <Pressable
+            style={[
+              estilos.boton,
+              { marginTop: 10 },
+              (notaGuardando || notaCargando || notaPersonal === notaOriginal) && estilos.botonDeshabilitado,
+            ]}
+            onPress={guardarNota}
+            disabled={notaGuardando || notaCargando || notaPersonal === notaOriginal}
+          >
+            {notaGuardando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Guardar observación</Text>}
+          </Pressable>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -600,6 +663,7 @@ const estilos = StyleSheet.create({
   error: { color: colores.error, marginTop: 12, textAlign: 'center' },
   acciones: { width: '100%', marginTop: 20, gap: 10 },
   boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
+  botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
   botonSecundario: { paddingVertical: 12, alignItems: 'center' },
   botonSecundarioTexto: { color: colores.error, fontWeight: '600' },

@@ -55,6 +55,7 @@ model Usuario {
   gruposAsignados GrupoJugador[]
   auditorias      Auditoria[]
   notificaciones  Notificacion[]
+  notasPartido    NotaPartido[]
 
   @@map("usuarios")
 }
@@ -142,6 +143,7 @@ model Partido {
 
   sets             SetPartido[]
   historialRanking HistorialRanking[]
+  notas            NotaPartido[]
 
   @@map("partidos")
 }
@@ -306,4 +308,21 @@ model Notificacion {
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
   @@map("notificaciones")
+}
+
+// Observación privada de un jugador sobre uno de sus propios partidos (ej. "me faltó pegarle
+// más liftado al rival"). Solo la ve quien la escribió — ni el rival, ni un admin/árbitro.
+model NotaPartido {
+  id        String   @id @default(uuid())
+  partidoId String   @map("partido_id")
+  usuarioId String   @map("usuario_id")
+  texto     String
+  creadoEn  DateTime @default(now()) @map("creado_en")
+  editadoEn DateTime @updatedAt @map("editado_en")
+
+  partido Partido @relation(fields: [partidoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@unique([partidoId, usuarioId])
+  @@map("notas_partido")
 }
