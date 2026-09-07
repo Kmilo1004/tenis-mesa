@@ -17,6 +17,34 @@ const FORMATOS_VALIDOS = ['eliminacion_directa', 'grupos', 'mixto'];
 const METODOS_ASIGNACION_VALIDOS = ['aleatorio', 'ranking_serpentina', 'manual'];
 const LETRAS_GRUPO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+// Orden fijo de cruces para un grupo de exactamente 4 jugadores (índices sobre el orden en que
+// quedaron asignados al grupo): 3 rondas de 2 partidos cada una, donde ningún jugador repite mesa
+// en la misma ronda — 1-3, 2-4, 1-2, 3-4, 1-4, 2-3.
+const ORDEN_CRUCES_GRUPO_DE_4 = [
+  [0, 2],
+  [1, 3],
+  [0, 1],
+  [2, 3],
+  [0, 3],
+  [1, 2],
+];
+
+// Genera los cruces (pares de índices) de todos contra todos para un grupo. Para grupos de
+// exactamente 4 jugadores usa el orden fijo de arriba; para cualquier otro tamaño, el orden
+// simple por pares consecutivos.
+function crucesGrupo(cantidadJugadores) {
+  if (cantidadJugadores === 4) {
+    return ORDEN_CRUCES_GRUPO_DE_4;
+  }
+  const cruces = [];
+  for (let i = 0; i < cantidadJugadores; i++) {
+    for (let j = i + 1; j < cantidadJugadores; j++) {
+      cruces.push([i, j]);
+    }
+  }
+  return cruces;
+}
+
 // Devuelve un Date válido o null (en vez de dejar pasar un "Invalid Date" hasta Prisma,
 // que respondería con un error técnico ilegible para el usuario).
 function parsearFecha(valor) {
@@ -219,14 +247,20 @@ router.delete('/torneos/:id', verificarToken, requiereRol('administrador'), asyn
       return res.status(404).json({ error: 'Torneo no encontrado' });
     }
 
-    await prisma.$transaction(async (tx) => {
-      const partidos = await tx.partido.findMany({ where: { torneoId: torneo.id }, select: { id: true } });
-      for (const partido of partidos) {
-        await revertirEloDePartido(tx, partido.id);
-      }
-      await tx.partido.deleteMany({ where: { torneoId: torneo.id } });
-      await tx.torneo.delete({ where: { id: torneo.id } });
-    });
+    // Ver comentario en publicar-grupos: revertir el ELO de cada partido uno por uno puede ser
+    // bastante trabajo secuencial en un torneo grande, así que se le da más margen que el timeout
+    // por defecto de Prisma (5s).
+    await prisma.$transaction(
+      async (tx) => {
+        const partidos = await tx.partido.findMany({ where: { torneoId: torneo.id }, select: { id: true } });
+        for (const partido of partidos) {
+          await revertirEloDePartido(tx, partido.id);
+        }
+        await tx.partido.deleteMany({ where: { torneoId: torneo.id } });
+        await tx.torneo.delete({ where: { id: torneo.id } });
+      },
+      { timeout: 20000, maxWait: 10000 },
+    );
 
     await registrarAuditoria(prisma, {
       usuarioId: req.usuarioId,
@@ -575,24 +609,29 @@ router.post('/torneos/:id/grupos/generar', verificarToken, requiereRol('administ
     }
     // metodoAsignacion === 'manual': los grupos quedan vacíos, el admin asigna con PATCH después
 
-    await prisma.$transaction(async (tx) => {
-      // Regenerar: borra los grupos anteriores (y sus asignaciones, por cascada) antes de crear los nuevos
-      await tx.grupo.deleteMany({ where: { torneoId: torneo.id } });
+    // Ver comentario en publicar-grupos/cuadro-generar: con varios grupos esto es bastante
+    // trabajo secuencial, así que se le da más margen que el timeout por defecto de Prisma (5s).
+    await prisma.$transaction(
+      async (tx) => {
+        // Regenerar: borra los grupos anteriores (y sus asignaciones, por cascada) antes de crear los nuevos
+        await tx.grupo.deleteMany({ where: { torneoId: torneo.id } });
 
-      for (let i = 0; i < numeroGrupos; i++) {
-        const grupo = await tx.grupo.create({ data: { torneoId: torneo.id, nombre: `Grupo ${LETRAS_GRUPO[i]}` } });
-        if (asignacionesPorGrupo[i].length) {
-          await tx.grupoJugador.createMany({
-            data: asignacionesPorGrupo[i].map((usuarioId) => ({ grupoId: grupo.id, usuarioId })),
-          });
+        for (let i = 0; i < numeroGrupos; i++) {
+          const grupo = await tx.grupo.create({ data: { torneoId: torneo.id, nombre: `Grupo ${LETRAS_GRUPO[i]}` } });
+          if (asignacionesPorGrupo[i].length) {
+            await tx.grupoJugador.createMany({
+              data: asignacionesPorGrupo[i].map((usuarioId) => ({ grupoId: grupo.id, usuarioId })),
+            });
+          }
         }
-      }
 
-      await tx.torneo.update({
-        where: { id: torneo.id },
-        data: { numeroGrupos, metodoAsignacionGrupos: metodoAsignacion, clasificadosPorGrupo: clasificados },
-      });
-    });
+        await tx.torneo.update({
+          where: { id: torneo.id },
+          data: { numeroGrupos, metodoAsignacionGrupos: metodoAsignacion, clasificadosPorGrupo: clasificados },
+        });
+      },
+      { timeout: 20000, maxWait: 10000 },
+    );
 
     const gruposConJugadores = await prisma.grupo.findMany({
       where: { torneoId: torneo.id },
@@ -709,24 +748,22 @@ router.post('/torneos/:id/grupos/publicar', verificarToken, requiereRol('adminis
       async (tx) => {
         for (const grupo of grupos) {
           const ids = grupo.jugadores.map((gj) => gj.usuarioId);
-          for (let i = 0; i < ids.length; i++) {
-            for (let j = i + 1; j < ids.length; j++) {
-              const partido = await tx.partido.create({
-                data: {
-                  torneoId: torneo.id,
-                  grupoId: grupo.id,
-                  jugadorAId: ids[i],
-                  jugadorBId: ids[j],
-                  tipoPartido: torneo.tipo === 'oficial' ? 'torneo_oficial' : 'torneo_flash',
-                  afectaRanking: torneo.tipo === 'oficial' ? 'oficial' : 'no_oficial',
-                  estado: 'pendiente',
-                  fechaPartido: torneo.fechaInicio,
-                  registradoPor: req.usuarioId,
-                },
-              });
-              // RF-21: el partido de grupo ya tiene ambos jugadores definidos desde ya
-              await notificarPartidoProximo(tx, partido);
-            }
+          for (const [i, j] of crucesGrupo(ids.length)) {
+            const partido = await tx.partido.create({
+              data: {
+                torneoId: torneo.id,
+                grupoId: grupo.id,
+                jugadorAId: ids[i],
+                jugadorBId: ids[j],
+                tipoPartido: torneo.tipo === 'oficial' ? 'torneo_oficial' : 'torneo_flash',
+                afectaRanking: torneo.tipo === 'oficial' ? 'oficial' : 'no_oficial',
+                estado: 'pendiente',
+                fechaPartido: torneo.fechaInicio,
+                registradoPor: req.usuarioId,
+              },
+            });
+            // RF-21: el partido de grupo ya tiene ambos jugadores definidos desde ya
+            await notificarPartidoProximo(tx, partido);
           }
         }
 
