@@ -9,7 +9,7 @@ async function enviarPush(prisma, { usuarioId, titulo, mensaje }) {
 
     await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8', Accept: 'application/json' },
       body: JSON.stringify({
         to: usuario.pushToken,
         title: titulo || 'TM UNIMAG',
