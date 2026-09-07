@@ -97,7 +97,7 @@ export default function PerfilJugador() {
             </View>
           </View>
 
-          <Text style={estilos.subtitulo}>Cara a cara</Text>
+          <Text style={estilos.subtitulo}>Enfrentamientos</Text>
           <View style={estilos.tarjeta}>
             {headToHead.map((r, i) => (
               <View key={r.rivalId} style={[estilos.filaRival, i > 0 && estilos.filaConDivisor]}>
