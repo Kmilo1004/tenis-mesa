@@ -19,6 +19,28 @@ const METODOS = [
   { valor: 'manual', etiqueta: 'Manual' },
 ];
 
+// Arma la cuadrícula de resultados cruzados de un grupo (fila = jugador, columna = número de
+// rival): matriz[i][j] = sets que ganó el jugador i contra el jugador j (o null si no jugaron
+// entre ellos todavía). Mismo cálculo que usa el reporte en PDF, para que ambos coincidan.
+function construirMatrizGrupo(jugadores, partidos) {
+  const indice = new Map(jugadores.map((j, i) => [j.usuarioId, i]));
+  const matriz = jugadores.map(() => jugadores.map(() => null));
+
+  for (const p of partidos) {
+    if (p.estado !== 'confirmado' || !p.jugadorA || !p.jugadorB) continue;
+    const i = indice.get(p.jugadorA.id);
+    const j = indice.get(p.jugadorB.id);
+    if (i === undefined || j === undefined) continue;
+
+    const setsA = p.sets.filter((s) => s.puntosJugadorA > s.puntosJugadorB).length;
+    const setsB = p.sets.length - setsA;
+    matriz[i][j] = setsA;
+    matriz[j][i] = setsB;
+  }
+
+  return matriz;
+}
+
 export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, token, onCambio }) {
   const [grupos, setGrupos] = useState([]);
   const [tablas, setTablas] = useState({});
@@ -184,28 +206,59 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
             ))}
           {!publicado && g.jugadores.length === 0 && <Text style={estilos.vacio}>Sin jugadores todavía</Text>}
 
-          {publicado && tablas[g.id] && (
-            <View style={estilos.tabla}>
-              <View style={estilos.filaTablaEncabezado}>
-                <Text style={[estilos.celda, estilos.celdaNombre]}>Jugador</Text>
-                <Text style={estilos.celda}>PJ</Text>
-                <Text style={estilos.celda}>PG</Text>
-                <Text style={estilos.celda}>PP</Text>
-                <Text style={estilos.celda}>Sets</Text>
-              </View>
-              {tablas[g.id].map((fila) => (
-                <View key={fila.usuarioId} style={estilos.filaTabla}>
-                  <Text style={[estilos.celda, estilos.celdaNombre]}>{fila.nombre}</Text>
-                  <Text style={estilos.celda}>{fila.jugados}</Text>
-                  <Text style={estilos.celda}>{fila.ganados}</Text>
-                  <Text style={estilos.celda}>{fila.perdidos}</Text>
-                  <Text style={estilos.celda}>
-                    {fila.setsFavor}-{fila.setsContra}
-                  </Text>
+          {publicado && tablas[g.id] && (() => {
+            const jugadoresGrupo = g.jugadores.map((j) => ({ usuarioId: j.usuarioId, nombre: j.usuario.nombre }));
+            const matriz = construirMatrizGrupo(jugadoresGrupo, partidosPorGrupo[g.id] || []);
+            const posicionPorUsuario = new Map(tablas[g.id].map((t, i) => [t.usuarioId, i + 1]));
+            const statsPorUsuario = new Map(tablas[g.id].map((t) => [t.usuarioId, t]));
+
+            return (
+              <View style={estilos.tablaCuadricula}>
+                <View style={estilos.filaCuadricula}>
+                  <View style={[estilos.celdaCuadro, estilos.celdaNombreCuadro]} />
+                  {jugadoresGrupo.map((_, i) => (
+                    <View key={i} style={[estilos.celdaCuadro, estilos.celdaEncabezado]}>
+                      <Text style={estilos.textoEncabezado}>{i + 1}</Text>
+                    </View>
+                  ))}
+                  <View style={[estilos.celdaCuadro, estilos.celdaEncabezado]}>
+                    <Text style={estilos.textoEncabezado}>Pts.</Text>
+                  </View>
+                  <View style={[estilos.celdaCuadro, estilos.celdaEncabezado]}>
+                    <Text style={estilos.textoEncabezado}>Pos.</Text>
+                  </View>
                 </View>
-              ))}
-            </View>
-          )}
+
+                {jugadoresGrupo.map((jugador, i) => {
+                  const stats = statsPorUsuario.get(jugador.usuarioId);
+                  return (
+                    <View key={jugador.usuarioId} style={estilos.filaCuadricula}>
+                      <View style={[estilos.celdaCuadro, estilos.celdaNombreCuadro]}>
+                        <Text style={estilos.textoNombreCuadro} numberOfLines={1}>
+                          {jugador.nombre}
+                        </Text>
+                      </View>
+                      {jugadoresGrupo.map((_, j) => {
+                        const esDiagonal = i === j;
+                        const valor = matriz[i][j];
+                        return (
+                          <View key={j} style={[estilos.celdaCuadro, esDiagonal && estilos.celdaDiagonal]}>
+                            {!esDiagonal && valor !== null && <Text style={estilos.textoCuadro}>{valor}</Text>}
+                          </View>
+                        );
+                      })}
+                      <View style={estilos.celdaCuadro}>
+                        <Text style={estilos.textoPtsPos}>{stats ? stats.ganados : ''}</Text>
+                      </View>
+                      <View style={estilos.celdaCuadro}>
+                        <Text style={estilos.textoPtsPos}>{posicionPorUsuario.get(jugador.usuarioId) || ''}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })()}
 
           {publicado && partidosPorGrupo[g.id]?.length > 0 && (
             <View style={estilos.listaPartidos}>
@@ -291,11 +344,23 @@ const estilos = StyleSheet.create({
   pildoraActiva: { backgroundColor: '#0B1E4D' },
   pildoraTexto: { fontSize: 12, color: '#3730a3', fontWeight: '600' },
   pildoraTextoActivo: { color: '#fff' },
-  tabla: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6 },
-  filaTablaEncabezado: { flexDirection: 'row', marginBottom: 4 },
-  filaTabla: { flexDirection: 'row', paddingVertical: 3 },
-  celda: { width: 40, fontSize: 11, color: '#555', textAlign: 'center' },
-  celdaNombre: { flex: 1, width: 'auto', textAlign: 'left', fontWeight: '600', color: '#333' },
+  tablaCuadricula: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8 },
+  filaCuadricula: { flexDirection: 'row' },
+  celdaCuadro: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: '#e5e7eb',
+  },
+  celdaNombreCuadro: { width: 'auto', flex: 1, borderWidth: 0, alignItems: 'flex-start', paddingRight: 4 },
+  celdaEncabezado: { backgroundColor: '#eef0f7' },
+  celdaDiagonal: { backgroundColor: '#d1d5db' },
+  textoEncabezado: { fontSize: 9.5, fontWeight: '700', color: '#333' },
+  textoNombreCuadro: { fontSize: 11, fontWeight: '600', color: '#333' },
+  textoCuadro: { fontSize: 10.5, color: '#333' },
+  textoPtsPos: { fontSize: 10.5, fontWeight: '700', color: '#0B1E4D' },
   listaPartidos: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8, gap: 6 },
   filaPartido: {
     flexDirection: 'row',
