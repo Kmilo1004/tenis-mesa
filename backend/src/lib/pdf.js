@@ -130,4 +130,9 @@ function generarPdfTabla(res, { titulo, columnas, filas }) {
   doc.end();
 }
 
-module.exports = { generarPdfTabla };
+module.exports = {
+  generarPdfTabla,
+  dibujarEncabezado,
+  dibujarPiePagina,
+  colores: { NAVY, NAVY_TEXTO_CLARO, TEXTO, TEXTO_SECUNDARIO, BORDE, FILA_ALTERNA, BLANCO },
+};

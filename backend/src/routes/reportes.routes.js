@@ -2,6 +2,8 @@ const express = require('express');
 const prisma = require('../lib/prisma');
 const { generarCsv } = require('../lib/csv');
 const { generarPdfTabla } = require('../lib/pdf');
+const { generarPdfTorneoDetallado, construirMatrizGrupo } = require('../lib/pdfTorneo');
+const { calcularTablaGrupo } = require('../lib/grupos.service');
 const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -75,12 +77,39 @@ router.get('/reportes/torneo/:id', verificarToken, requiereRol('administrador'),
       orderBy: [{ nivelRonda: 'asc' }, { creadoEn: 'asc' }],
       include: {
         sets: true,
-        jugadorA: { select: { nombre: true } },
-        jugadorB: { select: { nombre: true } },
+        jugadorA: { select: { id: true, nombre: true } },
+        jugadorB: { select: { id: true, nombre: true } },
         ganador: { select: { nombre: true } },
         grupo: { select: { nombre: true } },
       },
     });
+
+    if (formato === 'pdf') {
+      const gruposDb = await prisma.grupo.findMany({
+        where: { torneoId: torneo.id },
+        orderBy: { nombre: 'asc' },
+        include: { jugadores: { include: { usuario: { select: { id: true, nombre: true } } } } },
+      });
+
+      const grupos = await Promise.all(
+        gruposDb.map(async (g) => {
+          const jugadores = g.jugadores.map((gj) => ({ usuarioId: gj.usuarioId, nombre: gj.usuario.nombre }));
+          const partidosDelGrupo = partidos.filter((p) => p.grupoId === g.id);
+          const tabla = await calcularTablaGrupo(prisma, g.id);
+          return {
+            nombre: g.nombre.toUpperCase(),
+            jugadores,
+            matriz: construirMatrizGrupo(jugadores, partidosDelGrupo),
+            tabla,
+          };
+        }),
+      );
+
+      const partidosEliminacion = partidos.filter((p) => p.grupoId === null);
+
+      res.setHeader('Content-Disposition', `attachment; filename="torneo-${torneo.id}.pdf"`);
+      return generarPdfTorneoDetallado(res, { torneo, grupos, partidosEliminacion });
+    }
 
     const filas = partidos.map((p) => ({
       etapa: p.grupo ? p.grupo.nombre : p.ronda || '',
