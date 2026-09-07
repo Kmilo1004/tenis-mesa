@@ -25,6 +25,18 @@ const ETIQUETAS_ESTADO = {
   por_definir: { texto: 'Por definir', color: colores.textoSecundario, fondo: colores.gris },
 };
 
+// Cuenta cuántos sets ganó cada lado a partir del marcador de cada set.
+function contarSetsGanados(sets, soyJugadorA) {
+  let misSets = 0;
+  let setsRival = 0;
+  for (const s of sets || []) {
+    const ganeEsteSet = soyJugadorA ? s.puntosJugadorA > s.puntosJugadorB : s.puntosJugadorB > s.puntosJugadorA;
+    if (ganeEsteSet) misSets++;
+    else setsRival++;
+  }
+  return { misSets, setsRival };
+}
+
 export default function ListaPartidos() {
   const { usuario, token } = useAuth();
   const [partidos, setPartidos] = useState([]);
@@ -104,19 +116,41 @@ export default function ListaPartidos() {
             const soyJugadorA = item.jugadorA?.id === usuario.id;
             const rival = soyJugadorA ? item.jugadorB : item.jugadorA;
             const etiqueta = ETIQUETAS_ESTADO[item.estado] || ETIQUETAS_ESTADO.por_definir;
+            const esConfirmado = item.estado === 'confirmado';
+            const gane = esConfirmado && item.ganador?.id === usuario.id;
+            const { misSets, setsRival } = contarSetsGanados(item.sets, soyJugadorA);
 
             return (
-              <Pressable style={estilos.tarjeta} onPress={() => router.push(`/partidos/${item.id}`)}>
+              <Pressable
+                style={[estilos.tarjeta, esConfirmado && { borderLeftColor: gane ? colores.exito : colores.error }]}
+                onPress={() => router.push(`/partidos/${item.id}`)}
+              >
                 <View style={estilos.filaSuperior}>
                   <View style={[estilos.badge, { backgroundColor: etiqueta.fondo }]}>
                     <Text style={[estilos.badgeTexto, { color: etiqueta.color }]}>{etiqueta.texto}</Text>
                   </View>
                   {item.torneoId && <Text style={estilos.torneoTag}>{item.ronda || 'Torneo'}</Text>}
                 </View>
-                <Text style={estilos.rival}>vs {rival?.nombre || 'Por definir'}</Text>
-                <View style={estilos.filaFecha}>
-                  <Ionicons name="calendar-outline" size={13} color={colores.textoSecundario} />
-                  <Text style={estilos.fecha}>{new Date(item.fechaPartido).toLocaleDateString('es-CO')}</Text>
+
+                <View style={estilos.filaPrincipal}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={estilos.rival}>vs {rival?.nombre || 'Por definir'}</Text>
+                    <View style={estilos.filaFecha}>
+                      <Ionicons name="calendar-outline" size={13} color={colores.textoSecundario} />
+                      <Text style={estilos.fecha}>{new Date(item.fechaPartido).toLocaleDateString('es-CO')}</Text>
+                    </View>
+                  </View>
+
+                  {esConfirmado && (
+                    <View style={estilos.resultado}>
+                      <Text style={[estilos.resultadoTexto, { color: gane ? colores.exito : colores.error }]}>
+                        {gane ? 'GANASTE' : 'PERDISTE'}
+                      </Text>
+                      <Text style={estilos.marcadorSets}>
+                        {misSets}-{setsRival}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </Pressable>
             );
@@ -144,6 +178,8 @@ const estilos = StyleSheet.create({
     borderRadius: radios.tarjeta,
     backgroundColor: colores.tarjeta,
     marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: 'transparent',
     elevation: 1,
     shadowColor: '#000',
     shadowOpacity: 0.04,
@@ -151,10 +187,14 @@ const estilos = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   filaSuperior: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  filaPrincipal: { flexDirection: 'row', alignItems: 'center' },
   rival: { fontSize: 16, fontWeight: '700', color: colores.texto },
   filaFecha: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   fecha: { fontSize: 12, color: colores.textoSecundario },
   torneoTag: { fontSize: 11, color: colores.navy, fontWeight: '700' },
+  resultado: { alignItems: 'flex-end' },
+  resultadoTexto: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  marcadorSets: { fontSize: 20, fontWeight: '800', color: colores.texto, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radios.pildora },
   badgeTexto: { fontSize: 11, fontWeight: '700' },
   fab: {
