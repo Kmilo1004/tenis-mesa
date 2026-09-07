@@ -98,8 +98,12 @@ async function aplicarConfirmacion(tx, partido, { validadoPor, k = K_CASUAL } = 
   return partidoConfirmado;
 }
 
+// Cuando este partido es el último de la fase de grupos, aplicarConfirmacion además genera todo el
+// cuadro de eliminación directa (un partido por cruce, cada uno con sus notificaciones) dentro de
+// esta misma transacción — con el timeout por defecto de Prisma (5s) eso podía agotarse y tumbar la
+// confirmación con un error de transacción, así que se le da más margen.
 async function confirmarResultado(prisma, partido, opciones = {}) {
-  return prisma.$transaction((tx) => aplicarConfirmacion(tx, partido, opciones));
+  return prisma.$transaction((tx) => aplicarConfirmacion(tx, partido, opciones), { timeout: 20000, maxWait: 10000 });
 }
 
 // RF-16d: promueve un amistoso ya confirmado (no oficial) a oficial, aplicando el ELO oficial
@@ -155,6 +159,8 @@ async function revertirEloDePartido(tx, partidoId) {
 // si no se anula, vuelve a aplicar el resultado con el nuevo marcador. Deja registro en auditoria.
 async function editarOAnularResultado(prisma, partido, { sets, anular, motivo, adminId }) {
   return prisma.$transaction(async (tx) => {
+    // Ver comentario en confirmarResultado: editar un resultado puede volver a pasar por
+    // aplicarConfirmacion, que en el peor caso genera todo un cuadro de eliminación directa.
     await revertirEloDePartido(tx, partido.id);
 
     if (partido.partidoSiguienteId) {
@@ -201,7 +207,7 @@ async function editarOAnularResultado(prisma, partido, { sets, anular, motivo, a
     });
 
     return partidoActualizado;
-  });
+  }, { timeout: 20000, maxWait: 10000 });
 }
 
 module.exports = {

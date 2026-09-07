@@ -454,12 +454,16 @@ router.post('/torneos/:id/cuadro/generar', verificarToken, requiereRol('administ
       }
     }
 
-    const partidos = await prisma.$transaction((tx) =>
-      crearPartidosDeCuadro(tx, {
-        torneo,
-        participantesIds: participantes.map((p) => p.id),
-        registradoPor: req.usuarioId,
-      }),
+    // Crea un partido por cruce del cuadro (más su notificación); con torneos grandes puede ser
+    // bastante trabajo secuencial, así que se le da más margen que el timeout por defecto (5s).
+    const partidos = await prisma.$transaction(
+      (tx) =>
+        crearPartidosDeCuadro(tx, {
+          torneo,
+          participantesIds: participantes.map((p) => p.id),
+          registradoPor: req.usuarioId,
+        }),
+      { timeout: 20000, maxWait: 10000 },
     );
 
     await prisma.torneo.update({ where: { id: torneo.id }, data: { estado: 'en_curso' } });
@@ -698,32 +702,38 @@ router.post('/torneos/:id/grupos/publicar', verificarToken, requiereRol('adminis
       return res.status(400).json({ error: `${grupoInsuficiente.nombre} necesita al menos 2 jugadores para poder jugar` });
     }
 
-    await prisma.$transaction(async (tx) => {
-      for (const grupo of grupos) {
-        const ids = grupo.jugadores.map((gj) => gj.usuarioId);
-        for (let i = 0; i < ids.length; i++) {
-          for (let j = i + 1; j < ids.length; j++) {
-            const partido = await tx.partido.create({
-              data: {
-                torneoId: torneo.id,
-                grupoId: grupo.id,
-                jugadorAId: ids[i],
-                jugadorBId: ids[j],
-                tipoPartido: torneo.tipo === 'oficial' ? 'torneo_oficial' : 'torneo_flash',
-                afectaRanking: torneo.tipo === 'oficial' ? 'oficial' : 'no_oficial',
-                estado: 'pendiente',
-                fechaPartido: torneo.fechaInicio,
-                registradoPor: req.usuarioId,
-              },
-            });
-            // RF-21: el partido de grupo ya tiene ambos jugadores definidos desde ya
-            await notificarPartidoProximo(tx, partido);
+    // Crea todos los partidos de todos los grupos (más su notificación) en una sola transacción;
+    // con varios grupos numerosos es bastante trabajo secuencial, así que se le da más margen que
+    // el timeout por defecto de Prisma (5s).
+    await prisma.$transaction(
+      async (tx) => {
+        for (const grupo of grupos) {
+          const ids = grupo.jugadores.map((gj) => gj.usuarioId);
+          for (let i = 0; i < ids.length; i++) {
+            for (let j = i + 1; j < ids.length; j++) {
+              const partido = await tx.partido.create({
+                data: {
+                  torneoId: torneo.id,
+                  grupoId: grupo.id,
+                  jugadorAId: ids[i],
+                  jugadorBId: ids[j],
+                  tipoPartido: torneo.tipo === 'oficial' ? 'torneo_oficial' : 'torneo_flash',
+                  afectaRanking: torneo.tipo === 'oficial' ? 'oficial' : 'no_oficial',
+                  estado: 'pendiente',
+                  fechaPartido: torneo.fechaInicio,
+                  registradoPor: req.usuarioId,
+                },
+              });
+              // RF-21: el partido de grupo ya tiene ambos jugadores definidos desde ya
+              await notificarPartidoProximo(tx, partido);
+            }
           }
         }
-      }
 
-      await tx.torneo.update({ where: { id: torneo.id }, data: { estado: 'en_curso' } });
-    });
+        await tx.torneo.update({ where: { id: torneo.id }, data: { estado: 'en_curso' } });
+      },
+      { timeout: 20000, maxWait: 10000 },
+    );
 
     const partidos = await prisma.partido.findMany({ where: { torneoId: torneo.id, grupoId: { not: null } } });
 
