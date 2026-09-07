@@ -133,7 +133,7 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
 
       {puedeEditarConfiguracion && !mostrarFormulario && (
         <Pressable style={estilos.botonAdmin} onPress={abrirFormulario}>
-          <Text style={estilos.botonAdminTexto}>{grupos.length === 0 ? 'Generar grupos' : 'Editar configuración de grupos'}</Text>
+          <Text style={estilos.botonAdminTexto}>{grupos.length === 0 ? 'Generar grupos' : 'Regenerar grupos desde cero'}</Text>
         </Pressable>
       )}
 
@@ -223,8 +223,12 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
       ))}
 
       {grupos.length > 0 && esAdmin && !publicado && (
-        <View style={{ width: '100%', marginTop: 16 }}>
-          <Text style={estilos.etiqueta}>Asignar / mover jugadores</Text>
+        <View style={estilos.bloqueMover}>
+          <Text style={estilos.tituloMover}>Mover jugadores entre grupos</Text>
+          <Text style={estilos.subtituloMover}>
+            Ajusta manualmente quién quedó en qué grupo (por ejemplo, si generaste por ranking y quieres afinarlo) sin perder el resto de
+            la distribución.
+          </Text>
           {inscritos.map((i) => {
             const grupoActualId = gruposPorUsuario.get(i.usuarioId);
             return (
@@ -277,6 +281,9 @@ const estilos = StyleSheet.create({
   botonSecundarioTexto: { color: '#666', fontWeight: '600' },
   bloqueGrupo: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginTop: 10 },
   nombreGrupo: { fontWeight: '700', color: '#0B1E4D', marginBottom: 6 },
+  bloqueMover: { width: '100%', backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginTop: 16 },
+  tituloMover: { fontWeight: '700', color: '#0B1E4D', marginBottom: 4 },
+  subtituloMover: { fontSize: 12, color: '#666', marginBottom: 10 },
   jugadorLinea: { fontSize: 13, paddingVertical: 2 },
   filaAsignacion: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   pildoras: { flexDirection: 'row', gap: 6 },
