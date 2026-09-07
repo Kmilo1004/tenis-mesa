@@ -15,3 +15,5 @@ services:
         value: 7d
       - key: PORT
         value: 3000
+      - key: RESEND_API_KEY
+        sync: false
