@@ -195,7 +195,7 @@ export default function Perfil() {
                   </View>
                 )}
 
-                <Pressable style={estilos.enlaceCompleto} onPress={() => router.push(`/ranking/${usuario.id}`)}>
+                <Pressable style={estilos.enlaceCompleto} onPress={() => router.push(`/ranking/${usuario.id}?desde=perfil`)}>
                   <Text style={estilos.enlaceCompletoTexto}>Ver estadísticas completas</Text>
                   <Ionicons name="chevron-forward" size={14} color={colores.acento} />
                 </Pressable>

@@ -8,7 +8,7 @@ import Avatar from '../../../src/components/Avatar';
 import { colores, radios } from '../../../src/theme/colores';
 
 export default function PerfilJugador() {
-  const { id } = useLocalSearchParams();
+  const { id, desde } = useLocalSearchParams();
   const { token } = useAuth();
 
   const [datos, setDatos] = useState(null);
@@ -34,10 +34,18 @@ export default function PerfilJugador() {
     }, [cargar]),
   );
 
+  // Al entrar desde "Ver estadísticas completas" (Perfil), navegar acá cambia la pestaña activa a
+  // Ranking, así que un "volver" normal no regresaría a Perfil sino a la lista del ranking.
+  const botonVolver = () => (
+    <Pressable onPress={() => (desde === 'perfil' ? router.replace('/perfil') : router.back())} hitSlop={10} style={{ paddingRight: 12 }}>
+      <Ionicons name="arrow-back" size={22} color={colores.textoClaro} />
+    </Pressable>
+  );
+
   if (cargando || !datos) {
     return (
       <View style={estilos.centrado}>
-        <Stack.Screen options={{ title: 'Jugador' }} />
+        <Stack.Screen options={{ title: 'Jugador', headerLeft: botonVolver }} />
         {error ? <Text style={estilos.error}>{error}</Text> : <ActivityIndicator color={colores.navy} />}
       </View>
     );
@@ -48,7 +56,7 @@ export default function PerfilJugador() {
 
   return (
     <ScrollView contentContainerStyle={estilos.contenedor}>
-      <Stack.Screen options={{ title: usuario.nombre }} />
+      <Stack.Screen options={{ title: usuario.nombre, headerLeft: botonVolver }} />
 
       <View style={estilos.encabezado}>
         <Avatar nombre={usuario.nombre} tamano={64} />
