@@ -7,7 +7,7 @@ const router = express.Router();
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
   version: '2.1.0',
-  url: 'https://expo.dev/artifacts/eas/E-IdbW4rODHK2hmetta1lyiTy850WpEXNM9EJZeCxHc.apk',
+  url: 'https://expo.dev/artifacts/eas/zh3KdIHWOXwjV1jZl61_kl9hv9hr_wrQN0DBM2uiZNw.apk',
   notas: 'Ahora puedes recuperar tu contraseña por correo (o pedirle a un admin que te la restablezca), y agregar observaciones privadas a tus partidos confirmados que solo tú puedes ver. Además: ícono propio en las notificaciones, botón de volver arreglado en el perfil de un jugador del ranking, y orden fijo de partidos en grupos de 4 jugadores.',
 };
 
