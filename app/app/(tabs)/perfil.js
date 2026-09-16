@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Linking, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,9 +14,8 @@ import { esVersionMasNueva } from '../../src/lib/actualizaciones';
 const VERSION_ACTUAL = Constants.expoConfig?.version || '1.0.0';
 
 export default function Perfil() {
-  const { usuario, token, cargando, sinConexion, cerrarSesion } = useAuth();
-  const [buscandoActualizacion, setBuscandoActualizacion] = useState(false);
-  const [actualizacionDisponible, setActualizacionDisponible] = useState(null);
+  const { usuario, token, cargando, sinConexion } = useAuth();
+  const [hayActualizacion, setHayActualizacion] = useState(false);
   const [estadisticas, setEstadisticas] = useState(null);
   const [totalPorAprobar, setTotalPorAprobar] = useState(0);
 
@@ -49,30 +48,16 @@ export default function Perfil() {
     }, [usuario?.id, token]),
   );
 
+  // Chequeo liviano y silencioso: solo para decidir si mostrar el puntito rojo sobre la
+  // tuerquita. El botón de "Buscar actualizaciones" en sí (con la tarjeta de descarga) vive en
+  // Configuración.
   useEffect(() => {
-    buscarActualizacion({ silencioso: true });
+    apiFetch('/version')
+      .then((datos) => setHayActualizacion(esVersionMasNueva(datos.version, VERSION_ACTUAL)))
+      .catch(() => {
+        // no es crítico: si falla, simplemente no se muestra el puntito
+      });
   }, []);
-
-  async function buscarActualizacion({ silencioso = false } = {}) {
-    setBuscandoActualizacion(true);
-    try {
-      const datos = await apiFetch('/version');
-      if (esVersionMasNueva(datos.version, VERSION_ACTUAL)) {
-        setActualizacionDisponible(datos);
-      } else {
-        setActualizacionDisponible(null);
-        if (!silencioso) {
-          Alert.alert('Ya estás al día', 'Tienes instalada la última versión de la app.');
-        }
-      }
-    } catch (err) {
-      if (!silencioso) {
-        Alert.alert('No se pudo buscar actualizaciones', err.message);
-      }
-    } finally {
-      setBuscandoActualizacion(false);
-    }
-  }
 
   if (cargando || !usuario) {
     return (
@@ -84,14 +69,16 @@ export default function Perfil() {
 
   const esAdmin = usuario.roles?.some((r) => r.rol === 'administrador');
 
-  async function salir() {
-    await cerrarSesion();
-    router.replace('/login');
-  }
-
   return (
     <ScrollView style={estilos.contenedor} contentContainerStyle={{ paddingBottom: 40 }}>
-      <EncabezadoApp>
+      <EncabezadoApp
+        accionDerecha={
+          <Pressable style={estilos.botonConfig} onPress={() => router.push('/configuracion')} hitSlop={10}>
+            <Ionicons name="settings-outline" size={24} color={colores.textoClaro} />
+            {hayActualizacion && <View style={estilos.puntoActualizacion} />}
+          </Pressable>
+        }
+      >
         <View style={estilos.filaAvatar}>
           <Avatar nombre={usuario.nombre} tamano={56} />
           <View style={{ marginLeft: 14, flex: 1 }}>
@@ -104,21 +91,6 @@ export default function Perfil() {
 
       <View style={estilos.cuerpo}>
         {sinConexion && <AvisoSinConexion />}
-
-        {actualizacionDisponible && (
-          <View style={estilos.tarjetaActualizacion}>
-            <View style={estilos.filaActualizacion}>
-              <Ionicons name="cloud-download-outline" size={22} color={colores.navy} />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={estilos.actualizacionTitulo}>Nueva versión disponible ({actualizacionDisponible.version})</Text>
-                {actualizacionDisponible.notas && <Text style={estilos.actualizacionNotas}>{actualizacionDisponible.notas}</Text>}
-              </View>
-            </View>
-            <Pressable style={estilos.botonActualizar} onPress={() => Linking.openURL(actualizacionDisponible.url)}>
-              <Text style={estilos.botonActualizarTexto}>Descargar</Text>
-            </Pressable>
-          </View>
-        )}
 
         <View style={estilos.rolesFila}>
           {usuario.roles?.map((r) => (
@@ -238,21 +210,6 @@ export default function Perfil() {
           </View>
         )}
 
-        <Pressable style={estilos.botonBuscarActualizacion} onPress={() => buscarActualizacion()} disabled={buscandoActualizacion}>
-          {buscandoActualizacion ? (
-            <ActivityIndicator color={colores.navy} size="small" />
-          ) : (
-            <Ionicons name="refresh-outline" size={18} color={colores.navy} />
-          )}
-          <Text style={estilos.botonBuscarActualizacionTexto}>Buscar actualizaciones</Text>
-        </Pressable>
-        <Text style={estilos.versionTexto}>Versión {VERSION_ACTUAL}</Text>
-        <Text style={estilos.creditoTexto}>By Andrés Alvarez</Text>
-
-        <Pressable style={estilos.botonSalir} onPress={salir}>
-          <Ionicons name="log-out-outline" size={18} color={colores.error} />
-          <Text style={estilos.botonSalirTexto}>Cerrar sesión</Text>
-        </Pressable>
       </View>
     </ScrollView>
   );
@@ -291,43 +248,18 @@ const estilos = StyleSheet.create({
   contadorBadge: { backgroundColor: colores.error, borderRadius: radios.pildora, paddingHorizontal: 8, paddingVertical: 2, marginRight: 4 },
   contadorBadgeTexto: { color: colores.textoClaro, fontSize: 11, fontWeight: '800' },
   divisor: { height: 1, backgroundColor: colores.borde },
-  botonSalir: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-    paddingVertical: 14,
+  botonConfig: { padding: 2 },
+  puntoActualizacion: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colores.error,
+    borderWidth: 1.5,
+    borderColor: colores.navy,
   },
-  botonSalirTexto: { color: colores.error, fontWeight: '700' },
-  tarjetaActualizacion: {
-    backgroundColor: colores.infoFondo,
-    borderRadius: radios.tarjeta,
-    padding: 16,
-    marginBottom: 16,
-  },
-  filaActualizacion: { flexDirection: 'row', alignItems: 'flex-start' },
-  actualizacionTitulo: { fontSize: 14, fontWeight: '700', color: colores.texto },
-  actualizacionNotas: { fontSize: 12, color: colores.textoSecundario, marginTop: 4 },
-  botonActualizar: {
-    backgroundColor: colores.navy,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  botonActualizarTexto: { color: colores.textoClaro, fontWeight: '700' },
-  botonBuscarActualizacion: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 16,
-    paddingVertical: 12,
-  },
-  botonBuscarActualizacionTexto: { color: colores.navy, fontWeight: '600' },
-  versionTexto: { textAlign: 'center', color: colores.textoSecundario, fontSize: 11, marginTop: 2 },
-  creditoTexto: { textAlign: 'center', color: colores.textoSecundario, fontSize: 11, marginTop: 2 },
   statsVacio: { color: colores.textoSecundario, fontSize: 13 },
   filaStats: { flexDirection: 'row', gap: 10 },
   subTarjetaStats: { flex: 1, backgroundColor: colores.fondo, borderRadius: 14, padding: 12 },

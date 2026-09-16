@@ -84,8 +84,19 @@ export function AuthProvider({ children }) {
     setUsuario(null);
   }
 
+  // Vuelve a pedir el perfil propio (ej. después de cambiar el nombre en Configuración) para que
+  // el nombre se actualice en toda la app sin tener que cerrar y volver a iniciar sesión.
+  async function refrescarUsuario() {
+    if (!token) return;
+    const perfil = await apiFetch('/usuarios/me', { token });
+    setUsuario(perfil);
+    guardarCache(CLAVE_CACHE_PERFIL, perfil);
+  }
+
   return (
-    <AuthContext.Provider value={{ token, usuario, cargando, sinConexion, iniciarSesion, registrarse, cerrarSesion }}>
+    <AuthContext.Provider
+      value={{ token, usuario, cargando, sinConexion, iniciarSesion, registrarse, cerrarSesion, refrescarUsuario }}
+    >
       {children}
     </AuthContext.Provider>
   );

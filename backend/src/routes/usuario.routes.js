@@ -73,6 +73,58 @@ router.get('/usuarios/me', verificarToken, async (req, res, next) => {
   }
 });
 
+// PATCH /usuarios/me — por ahora solo permite cambiar el nombre propio.
+router.patch('/usuarios/me', verificarToken, async (req, res, next) => {
+  try {
+    const { nombre } = req.body;
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ error: 'nombre es obligatorio' });
+    }
+
+    const usuario = await prisma.usuario.update({
+      where: { id: req.usuarioId },
+      data: { nombre: nombre.trim() },
+      include: { roles: true },
+    });
+
+    const { passwordHash, ...resto } = usuario;
+    return res.status(200).json(resto);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PUT /usuarios/me/password — cambiar la contraseña estando logueado (a diferencia del flujo de
+// recuperación por correo, aquí se exige la contraseña actual).
+router.put('/usuarios/me/password', verificarToken, async (req, res, next) => {
+  try {
+    const { passwordActual, passwordNueva } = req.body;
+    if (!passwordActual || !passwordNueva) {
+      return res.status(400).json({ error: 'passwordActual y passwordNueva son obligatorios' });
+    }
+    if (passwordNueva.length < 8) {
+      return res.status(400).json({ error: 'La contraseña nueva debe tener al menos 8 caracteres' });
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { id: req.usuarioId } });
+    if (!usuario?.passwordHash) {
+      return res.status(400).json({ error: 'Este usuario no tiene contraseña propia' });
+    }
+
+    const passwordValida = await bcrypt.compare(passwordActual, usuario.passwordHash);
+    if (!passwordValida) {
+      return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+    }
+
+    const passwordHash = await bcrypt.hash(passwordNueva, 10);
+    await prisma.usuario.update({ where: { id: usuario.id }, data: { passwordHash } });
+
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+});
+
 // PUT /usuarios/me/push-token — guarda o actualiza el token de notificaciones push del
 // dispositivo actual. body: { token } (o { token: null } para borrarlo, ej. al cerrar sesión).
 router.put('/usuarios/me/push-token', verificarToken, async (req, res, next) => {
