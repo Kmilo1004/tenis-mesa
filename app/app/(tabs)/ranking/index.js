@@ -89,21 +89,31 @@ export default function Ranking() {
           contentContainerStyle={{ padding: 16, paddingTop: 8 }}
           ListHeaderComponent={sinConexion ? <AvisoSinConexion /> : null}
           ListEmptyComponent={<Text style={estilos.vacio}>Todavía no hay jugadores en este ranking</Text>}
-          renderItem={({ item }) => (
-            <Pressable
-              style={[estilos.fila, item.id === usuario?.id && estilos.filaPropia]}
-              onPress={() => router.push(`/ranking/${item.id}`)}
-            >
-              <Text style={estilos.posicion}>#{item.posicion}</Text>
-              <Avatar nombre={item.nombre} tamano={38} />
-              <View style={estilos.columnaNombre}>
-                <Text style={estilos.nombre}>{item.nombre}</Text>
-                {mostrarNivel && <EtiquetaNivel nivel={item.nivel} tamano="chico" />}
-              </View>
-              <Text style={estilos.elo}>{tipo === 'oficial' ? item.eloOficial : item.eloNoOficial}</Text>
-              <Ionicons name="chevron-forward" size={16} color={colores.textoSecundario} />
-            </Pressable>
-          )}
+          renderItem={({ item, index }) => {
+            const esPrimerSinClasificar = item.clasificado === false && ranking[index - 1]?.clasificado !== false;
+            return (
+              <>
+                {esPrimerSinClasificar && <Text style={estilos.separadorSinClasificar}>Sin clasificar todavía</Text>}
+                <Pressable
+                  style={[estilos.fila, item.id === usuario?.id && estilos.filaPropia]}
+                  onPress={() => router.push(`/ranking/${item.id}`)}
+                >
+                  <Text style={estilos.posicion}>{item.clasificado ? `#${item.posicion}` : '–'}</Text>
+                  <Avatar nombre={item.nombre} tamano={38} />
+                  <View style={estilos.columnaNombre}>
+                    <Text style={estilos.nombre}>{item.nombre}</Text>
+                    {mostrarNivel && <EtiquetaNivel nivel={item.nivel} tamano="chico" />}
+                  </View>
+                  {item.clasificado ? (
+                    <Text style={estilos.elo}>{tipo === 'oficial' ? item.eloOficial : item.eloNoOficial}</Text>
+                  ) : (
+                    <Text style={estilos.sinClasificarTexto}>Sin clasificar</Text>
+                  )}
+                  <Ionicons name="chevron-forward" size={16} color={colores.textoSecundario} />
+                </Pressable>
+              </>
+            );
+          }}
         />
       )}
     </View>
@@ -138,4 +148,14 @@ const estilos = StyleSheet.create({
   columnaNombre: { flex: 1, gap: 3 },
   nombre: { fontSize: 15, fontWeight: '600', color: colores.texto },
   elo: { fontWeight: '800', color: colores.navy, marginRight: 4 },
+  sinClasificarTexto: { fontSize: 12, fontWeight: '600', color: colores.textoSecundario, marginRight: 4, fontStyle: 'italic' },
+  separadorSinClasificar: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colores.textoSecundario,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginTop: 8,
+    marginBottom: 8,
+  },
 });
