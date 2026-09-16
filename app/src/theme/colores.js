@@ -10,6 +10,7 @@ export const colores = {
   textoClaro: '#FFFFFF',
   borde: '#E9EAF0',
   acento: '#1D4ED8',
+  acentoFondo: '#DBEAFE',
   exito: '#16A34A',
   exitoFondo: '#DCFCE7',
   error: '#DC2626',

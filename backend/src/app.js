@@ -11,6 +11,7 @@ const torneoRoutes = require('./routes/torneo.routes');
 const auditoriaRoutes = require('./routes/auditoria.routes');
 const notificacionRoutes = require('./routes/notificacion.routes');
 const reportesRoutes = require('./routes/reportes.routes');
+const configuracionRoutes = require('./routes/configuracion.routes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/v1', torneoRoutes);
 app.use('/api/v1', auditoriaRoutes);
 app.use('/api/v1', notificacionRoutes);
 app.use('/api/v1', reportesRoutes);
+app.use('/api/v1', configuracionRoutes);
 
 // 404 explícito para rutas no encontradas
 app.use((req, res) => {

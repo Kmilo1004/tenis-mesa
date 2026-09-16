@@ -15,6 +15,15 @@ enum TipoUsuario {
   externo
 }
 
+// Clasificación del jugador: determina el ELO con el que arranca (más alto entre más avanzado el
+// nivel) y opcionalmente se muestra como etiqueta en el ranking (ver Configuracion).
+enum NivelJugador {
+  principiante
+  formativo
+  precompetitivo
+  competitivo
+}
+
 enum Rol {
   jugador
   arbitro
@@ -39,6 +48,7 @@ model Usuario {
   pushToken             String?   @map("push_token")
   resetTokenHash        String?   @map("reset_token_hash")
   resetTokenExpira      DateTime? @map("reset_token_expira")
+  nivel                 NivelJugador @default(competitivo)
 
   roles UsuarioRol[]
 
@@ -325,4 +335,12 @@ model NotaPartido {
 
   @@unique([partidoId, usuarioId])
   @@map("notas_partido")
+}
+
+// Fila única (id fijo "global") con ajustes del club completo, en vez de por usuario/torneo.
+model Configuracion {
+  id                    String  @id
+  mostrarNivelEnRanking Boolean @default(false) @map("mostrar_nivel_en_ranking")
+
+  @@map("configuracion")
 }

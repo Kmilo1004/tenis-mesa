@@ -4,6 +4,7 @@ import { Link, router, Stack } from 'expo-router';
 import { useAuth } from '../src/auth/AuthContext';
 import CampoTexto from '../src/components/CampoTexto';
 import SelectorOpciones from '../src/components/SelectorOpciones';
+import { NIVELES_OPCIONES } from '../src/lib/niveles';
 import { colores } from '../src/theme/colores';
 
 // Misma lista que valida el backend (INSTITUCIONES_VALIDAS en auth.routes.js). Es informativo:
@@ -20,6 +21,7 @@ export default function Registro() {
   const [password, setPassword] = useState('');
   const [institucion, setInstitucion] = useState(INSTITUCIONES[0].valor);
   const [programaFacultad, setProgramaFacultad] = useState('');
+  const [nivel, setNivel] = useState('precompetitivo');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,6 +38,7 @@ export default function Registro() {
         tipo: 'interno',
         institucion,
         programaFacultad: programaFacultad.trim() || undefined,
+        nivel,
       });
       router.replace('/perfil');
     } catch (err) {
@@ -70,6 +73,8 @@ export default function Registro() {
         />
 
         <SelectorOpciones etiqueta="Universidad o club" opciones={INSTITUCIONES} valor={institucion} onCambiar={setInstitucion} />
+
+        <SelectorOpciones etiqueta="Tu nivel como jugador" opciones={NIVELES_OPCIONES} valor={nivel} onCambiar={setNivel} />
 
         <CampoTexto
           etiqueta="Programa o facultad (opcional)"

@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, TextInput, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { View, Text, FlatList, Pressable, TextInput, StyleSheet, ActivityIndicator, Switch, Alert } from 'react-native';
 import { Stack, useFocusEffect } from 'expo-router';
 import { apiFetch } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthContext';
 import Avatar from '../src/components/Avatar';
+import { NIVELES } from '../src/lib/niveles';
 import { colores, radios } from '../src/theme/colores';
 
 const ROLES = [
@@ -19,6 +20,10 @@ export default function GestionarRoles() {
   const [error, setError] = useState(null);
   const [actualizando, setActualizando] = useState(null); // `${usuarioId}:${rol}`
   const [restableciendoId, setRestableciendoId] = useState(null);
+  const [cambiandoNivelId, setCambiandoNivelId] = useState(null);
+
+  const [mostrarNivelEnRanking, setMostrarNivelEnRanking] = useState(false);
+  const [guardandoConfig, setGuardandoConfig] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -40,6 +45,28 @@ export default function GestionarRoles() {
     }, [cargar]),
   );
 
+  useEffect(() => {
+    if (!token) return;
+    apiFetch('/configuracion', { token })
+      .then((datos) => setMostrarNivelEnRanking(datos.mostrarNivelEnRanking))
+      .catch(() => {
+        // no es crítico: si falla, el interruptor simplemente queda apagado
+      });
+  }, [token]);
+
+  async function alternarMostrarNivel(valor) {
+    setMostrarNivelEnRanking(valor);
+    setGuardandoConfig(true);
+    try {
+      await apiFetch('/configuracion', { method: 'PATCH', token, body: JSON.stringify({ mostrarNivelEnRanking: valor }) });
+    } catch (err) {
+      setMostrarNivelEnRanking(!valor);
+      Alert.alert('No se pudo guardar', err.message);
+    } finally {
+      setGuardandoConfig(false);
+    }
+  }
+
   async function togglearRol(item, rol) {
     const clave = `${item.id}:${rol}`;
     setActualizando(clave);
@@ -55,6 +82,19 @@ export default function GestionarRoles() {
       Alert.alert('No se pudo cambiar el rol', err.message);
     } finally {
       setActualizando(null);
+    }
+  }
+
+  async function cambiarNivel(item, nivel) {
+    if (nivel === item.nivel) return;
+    setCambiandoNivelId(item.id);
+    try {
+      await apiFetch(`/usuarios/${item.id}/nivel`, { method: 'PATCH', token, body: JSON.stringify({ nivel }) });
+      setUsuarios((actuales) => actuales.map((u) => (u.id === item.id ? { ...u, nivel } : u)));
+    } catch (err) {
+      Alert.alert('No se pudo cambiar el nivel', err.message);
+    } finally {
+      setCambiandoNivelId(null);
     }
   }
 
@@ -85,6 +125,20 @@ export default function GestionarRoles() {
   return (
     <View style={estilos.contenedor}>
       <Stack.Screen options={{ title: 'Gestionar roles' }} />
+
+      <View style={estilos.tarjetaConfig}>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <Text style={estilos.configTitulo}>Mostrar nivel en el ranking</Text>
+          <Text style={estilos.configSub}>Muestra la etiqueta de nivel de cada jugador junto a su fila en el ranking general.</Text>
+        </View>
+        <Switch
+          value={mostrarNivelEnRanking}
+          onValueChange={alternarMostrarNivel}
+          disabled={guardandoConfig}
+          trackColor={{ true: colores.navy }}
+          thumbColor={colores.textoClaro}
+        />
+      </View>
 
       <View style={estilos.buscador}>
         <TextInput
@@ -145,6 +199,27 @@ export default function GestionarRoles() {
                 </View>
                 {soyYo && <Text style={estilos.notaPropia}>No puedes modificar tu propio rol de administrador</Text>}
 
+                <Text style={estilos.etiquetaNivelSeccion}>Nivel</Text>
+                <View style={estilos.filaNiveles}>
+                  {NIVELES.map((n) => {
+                    const activo = item.nivel === n.valor;
+                    return (
+                      <Pressable
+                        key={n.valor}
+                        style={[estilos.chipNivel, activo && { backgroundColor: n.color, borderColor: n.color }]}
+                        onPress={() => cambiarNivel(item, n.valor)}
+                        disabled={cambiandoNivelId === item.id}
+                      >
+                        {cambiandoNivelId === item.id && activo ? (
+                          <ActivityIndicator size="small" color={colores.textoClaro} />
+                        ) : (
+                          <Text style={[estilos.chipNivelTexto, activo && { color: colores.textoClaro }]}>{n.etiqueta}</Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
                 <Pressable
                   style={estilos.enlaceRestablecer}
                   onPress={() => restablecerPassword(item)}
@@ -167,6 +242,22 @@ export default function GestionarRoles() {
 
 const estilos = StyleSheet.create({
   contenedor: { flex: 1, backgroundColor: colores.fondo },
+  tarjetaConfig: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colores.tarjeta,
+    borderRadius: radios.tarjeta,
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  configTitulo: { fontSize: 13.5, fontWeight: '700', color: colores.texto },
+  configSub: { fontSize: 11.5, color: colores.textoSecundario, marginTop: 3 },
   buscador: { padding: 16, paddingBottom: 8 },
   buscadorInput: {
     borderWidth: 1,
@@ -209,6 +300,18 @@ const estilos = StyleSheet.create({
   chipTexto: { color: colores.texto, fontWeight: '600', fontSize: 13 },
   chipTextoActivo: { color: colores.textoClaro, fontWeight: '600', fontSize: 13 },
   notaPropia: { fontSize: 11, color: colores.textoSecundario, marginTop: 8, fontStyle: 'italic' },
-  enlaceRestablecer: { marginTop: 10, alignItems: 'center', paddingVertical: 4 },
+  etiquetaNivelSeccion: { fontSize: 11, fontWeight: '700', color: colores.textoSecundario, marginTop: 12, marginBottom: 6 },
+  filaNiveles: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chipNivel: {
+    borderWidth: 1,
+    borderColor: colores.borde,
+    borderRadius: radios.pildora,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    minHeight: 30,
+    justifyContent: 'center',
+  },
+  chipNivelTexto: { color: colores.texto, fontWeight: '600', fontSize: 12 },
+  enlaceRestablecer: { marginTop: 12, alignItems: 'center', paddingVertical: 4 },
   textoRestablecer: { fontSize: 12.5, color: colores.error, fontWeight: '600' },
 });

@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
 import Avatar from '../../../src/components/Avatar';
+import EtiquetaNivel from '../../../src/components/EtiquetaNivel';
 import { colores, radios } from '../../../src/theme/colores';
 
 export default function PerfilJugador() {
@@ -14,6 +15,7 @@ export default function PerfilJugador() {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const [mostrarNivel, setMostrarNivel] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -33,6 +35,15 @@ export default function PerfilJugador() {
       cargar();
     }, [cargar]),
   );
+
+  useEffect(() => {
+    if (!token) return;
+    apiFetch('/configuracion', { token })
+      .then((datos) => setMostrarNivel(datos.mostrarNivelEnRanking))
+      .catch(() => {
+        // no es crítico: si falla, simplemente no se muestra la etiqueta
+      });
+  }, [token]);
 
   // Al entrar desde "Ver estadísticas completas" (Perfil), navegar acá cambia la pestaña activa a
   // Ranking, así que un "volver" normal no regresaría a Perfil sino a la lista del ranking.
@@ -61,6 +72,11 @@ export default function PerfilJugador() {
       <View style={estilos.encabezado}>
         <Avatar nombre={usuario.nombre} tamano={64} />
         <Text style={estilos.nombre}>{usuario.nombre}</Text>
+        {mostrarNivel && (
+          <View style={{ marginTop: 6 }}>
+            <EtiquetaNivel nivel={usuario.nivel} />
+          </View>
+        )}
       </View>
 
       <View style={estilos.tarjeta}>

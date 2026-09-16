@@ -5,6 +5,7 @@ const prisma = require('../lib/prisma');
 const { registrarAuditoria } = require('../lib/auditoria.service');
 const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
 const { INCLUYE_JUGADORES } = require('../lib/partido.constants');
+const { NIVELES_VALIDOS, ELO_INICIAL_POR_NIVEL } = require('../lib/niveles');
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ const ROLES_GESTIONABLES = ['arbitro', 'administrador'];
 // almacenar sus datos; sin él, el perfil no se crea.
 router.post('/usuarios/externos', verificarToken, requiereRol('administrador'), async (req, res, next) => {
   try {
-    const { nombre, procedencia, consentimientoDatos } = req.body;
+    const { nombre, procedencia, consentimientoDatos, nivel } = req.body;
 
     if (!nombre) {
       return res.status(400).json({ error: 'nombre es obligatorio' });
@@ -28,6 +29,12 @@ router.post('/usuarios/externos', verificarToken, requiereRol('administrador'), 
       });
     }
 
+    if (!nivel || !NIVELES_VALIDOS.includes(nivel)) {
+      return res.status(400).json({ error: `nivel es obligatorio y debe ser uno de: ${NIVELES_VALIDOS.join(', ')}` });
+    }
+
+    const eloInicial = ELO_INICIAL_POR_NIVEL[nivel];
+
     const usuario = await prisma.usuario.create({
       data: {
         nombre,
@@ -35,6 +42,9 @@ router.post('/usuarios/externos', verificarToken, requiereRol('administrador'), 
         tipo: 'externo',
         consentimientoDatos: true,
         fechaConsentimiento: new Date(),
+        nivel,
+        eloOficial: eloInicial,
+        eloNoOficial: eloInicial,
         roles: { create: { rol: 'jugador' } },
       },
       include: { roles: true },
@@ -178,12 +188,42 @@ router.get('/usuarios', verificarToken, requiereRol('administrador'), async (req
         tipo: 'interno',
         ...(q.length >= 2 ? { nombre: { contains: q, mode: 'insensitive' } } : {}),
       },
-      select: { id: true, nombre: true, correo: true, activo: true, roles: { select: { rol: true } } },
+      select: { id: true, nombre: true, correo: true, activo: true, nivel: true, roles: { select: { rol: true } } },
       orderBy: { nombre: 'asc' },
       take: 200,
     });
 
     return res.status(200).json(usuarios.map((u) => ({ ...u, roles: u.roles.map((r) => r.rol) })));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PATCH /usuarios/{id}/nivel — solo admin: reclasifica a un jugador (interno o invitado). No
+// modifica el ELO ya acumulado, solo describe su nivel actual hacia adelante.
+router.patch('/usuarios/:id/nivel', verificarToken, requiereRol('administrador'), async (req, res, next) => {
+  try {
+    const { nivel } = req.body;
+    if (!nivel || !NIVELES_VALIDOS.includes(nivel)) {
+      return res.status(400).json({ error: `nivel es obligatorio y debe ser uno de: ${NIVELES_VALIDOS.join(', ')}` });
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { id: req.params.id } });
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    await prisma.usuario.update({ where: { id: usuario.id }, data: { nivel } });
+
+    await registrarAuditoria(prisma, {
+      usuarioId: req.usuarioId,
+      accion: 'cambiar_nivel',
+      entidadTipo: 'usuario',
+      entidadId: usuario.id,
+      detalle: { nivelAnterior: usuario.nivel, nivelNuevo: nivel },
+    });
+
+    return res.status(200).json({ id: usuario.id, nivel });
   } catch (error) {
     return next(error);
   }
@@ -311,7 +351,7 @@ router.get('/usuarios/:id/estadisticas', verificarToken, async (req, res, next) 
   try {
     const usuario = await prisma.usuario.findUnique({
       where: { id: req.params.id },
-      select: { id: true, nombre: true, eloOficial: true, eloNoOficial: true },
+      select: { id: true, nombre: true, eloOficial: true, eloNoOficial: true, nivel: true },
     });
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });

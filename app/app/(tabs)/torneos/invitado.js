@@ -4,6 +4,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
 import CampoTexto from '../../../src/components/CampoTexto';
+import SelectorOpciones from '../../../src/components/SelectorOpciones';
+import { NIVELES_OPCIONES } from '../../../src/lib/niveles';
 
 export default function AgregarInvitado() {
   const { torneoId } = useLocalSearchParams();
@@ -11,6 +13,7 @@ export default function AgregarInvitado() {
 
   const [nombre, setNombre] = useState('');
   const [procedencia, setProcedencia] = useState('');
+  const [nivel, setNivel] = useState('precompetitivo');
 
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
@@ -28,6 +31,7 @@ export default function AgregarInvitado() {
           nombre: nombre.trim(),
           procedencia: procedencia.trim() || undefined,
           consentimientoDatos: true,
+          nivel,
         }),
       });
 
@@ -59,6 +63,7 @@ export default function AgregarInvitado() {
           value={procedencia}
           onChangeText={setProcedencia}
         />
+        <SelectorOpciones etiqueta="Nivel del jugador" opciones={NIVELES_OPCIONES} valor={nivel} onCambiar={setNivel} />
 
         {error && <Text style={estilos.error}>{error}</Text>}
 

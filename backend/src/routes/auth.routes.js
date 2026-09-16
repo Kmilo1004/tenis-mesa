@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { enviarCorreoRecuperacion } = require('../lib/email.service');
+const { NIVELES_VALIDOS, ELO_INICIAL_POR_NIVEL } = require('../lib/niveles');
 
 const router = express.Router();
 
@@ -28,10 +29,14 @@ function excluirPasswordHash(usuario) {
 // POST /auth/registro
 router.post('/auth/registro', async (req, res, next) => {
   try {
-    const { nombre, correo, password, tipo, procedencia, institucion, programaFacultad } = req.body;
+    const { nombre, correo, password, tipo, procedencia, institucion, programaFacultad, nivel } = req.body;
 
-    if (!nombre || !correo || !password || !tipo) {
-      return res.status(400).json({ error: 'nombre, correo, password y tipo son obligatorios' });
+    if (!nombre || !correo || !password || !tipo || !nivel) {
+      return res.status(400).json({ error: 'nombre, correo, password, tipo y nivel son obligatorios' });
+    }
+
+    if (!NIVELES_VALIDOS.includes(nivel)) {
+      return res.status(400).json({ error: `nivel debe ser uno de: ${NIVELES_VALIDOS.join(', ')}` });
     }
 
     if (!CORREO_REGEX.test(correo)) {
@@ -56,6 +61,7 @@ router.post('/auth/registro', async (req, res, next) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const eloInicial = ELO_INICIAL_POR_NIVEL[nivel];
 
     const usuario = await prisma.usuario.create({
       data: {
@@ -66,6 +72,9 @@ router.post('/auth/registro', async (req, res, next) => {
         procedencia,
         institucion,
         programaFacultad,
+        nivel,
+        eloOficial: eloInicial,
+        eloNoOficial: eloInicial,
         roles: { create: { rol: 'jugador' } },
       },
       include: { roles: true },

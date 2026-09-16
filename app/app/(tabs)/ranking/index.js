@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,15 +8,26 @@ import { guardarCache, leerCache } from '../../../src/lib/cache';
 import AvisoSinConexion from '../../../src/components/AvisoSinConexion';
 import EncabezadoApp from '../../../src/components/EncabezadoApp';
 import Avatar from '../../../src/components/Avatar';
+import EtiquetaNivel from '../../../src/components/EtiquetaNivel';
 import { colores, radios } from '../../../src/theme/colores';
 
 export default function Ranking() {
-  const { usuario } = useAuth();
+  const { usuario, token } = useAuth();
   const [tipo, setTipo] = useState('no_oficial'); // oficial | no_oficial
   const [ranking, setRanking] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [sinConexion, setSinConexion] = useState(false);
+  const [mostrarNivel, setMostrarNivel] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    apiFetch('/configuracion', { token })
+      .then((datos) => setMostrarNivel(datos.mostrarNivelEnRanking))
+      .catch(() => {
+        // no es crítico: si falla, simplemente no se muestran las etiquetas
+      });
+  }, [token]);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -85,7 +96,10 @@ export default function Ranking() {
             >
               <Text style={estilos.posicion}>#{item.posicion}</Text>
               <Avatar nombre={item.nombre} tamano={38} />
-              <Text style={estilos.nombre}>{item.nombre}</Text>
+              <View style={estilos.columnaNombre}>
+                <Text style={estilos.nombre}>{item.nombre}</Text>
+                {mostrarNivel && <EtiquetaNivel nivel={item.nivel} tamano="chico" />}
+              </View>
               <Text style={estilos.elo}>{tipo === 'oficial' ? item.eloOficial : item.eloNoOficial}</Text>
               <Ionicons name="chevron-forward" size={16} color={colores.textoSecundario} />
             </Pressable>
@@ -121,6 +135,7 @@ const estilos = StyleSheet.create({
   },
   filaPropia: { backgroundColor: '#EEF2FF' },
   posicion: { width: 28, fontWeight: '700', color: colores.textoSecundario },
-  nombre: { flex: 1, fontSize: 15, fontWeight: '600', color: colores.texto },
+  columnaNombre: { flex: 1, gap: 3 },
+  nombre: { fontSize: 15, fontWeight: '600', color: colores.texto },
   elo: { fontWeight: '800', color: colores.navy, marginRight: 4 },
 });

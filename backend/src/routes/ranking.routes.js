@@ -16,7 +16,7 @@ async function obtenerRanking(req, campoElo) {
       orderBy: [{ [campoElo]: 'desc' }, { id: 'asc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
-      select: { id: true, nombre: true, [campoElo]: true },
+      select: { id: true, nombre: true, nivel: true, [campoElo]: true },
     }),
     prisma.usuario.count({ where }),
   ]);
