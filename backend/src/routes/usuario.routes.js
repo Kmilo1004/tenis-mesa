@@ -344,6 +344,19 @@ router.get('/usuarios/:id/estadisticas', verificarToken, async (req, res, next) 
       racha = { tipo: tipoInicial, cantidad };
     }
 
+    // Mejor racha de victorias histórica (no solo la racha actual): recorre en orden cronológico
+    // y se queda con la secuencia de victorias consecutivas más larga.
+    let mejorRachaVictorias = 0;
+    let rachaEnCurso = 0;
+    for (const p of [...partidos].reverse()) {
+      if (p.ganadorId === usuario.id) {
+        rachaEnCurso++;
+        mejorRachaVictorias = Math.max(mejorRachaVictorias, rachaEnCurso);
+      } else {
+        rachaEnCurso = 0;
+      }
+    }
+
     // Cara a cara: agrupa por rival.
     const mapaRivales = new Map();
     for (const p of partidos) {
@@ -362,6 +375,7 @@ router.get('/usuarios/:id/estadisticas', verificarToken, async (req, res, next) 
       usuario,
       record: { victorias, derrotas, totalPartidos, porcentajeVictorias },
       racha,
+      mejorRachaVictorias,
       headToHead,
       partidosRecientes: partidos.slice(0, 10),
     });

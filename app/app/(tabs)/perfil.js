@@ -8,6 +8,8 @@ import { useAuth } from '../../src/auth/AuthContext';
 import AvisoSinConexion from '../../src/components/AvisoSinConexion';
 import EncabezadoApp from '../../src/components/EncabezadoApp';
 import Avatar from '../../src/components/Avatar';
+import GraficoElo from '../../src/components/GraficoElo';
+import BarraProporcion from '../../src/components/BarraProporcion';
 import { colores, radios } from '../../src/theme/colores';
 import { esVersionMasNueva } from '../../src/lib/actualizaciones';
 
@@ -17,6 +19,7 @@ export default function Perfil() {
   const { usuario, token, cargando, sinConexion } = useAuth();
   const [hayActualizacion, setHayActualizacion] = useState(false);
   const [estadisticas, setEstadisticas] = useState(null);
+  const [historialElo, setHistorialElo] = useState([]);
   const [totalPorAprobar, setTotalPorAprobar] = useState(0);
 
   useEffect(() => {
@@ -32,6 +35,23 @@ export default function Perfil() {
         .then(setEstadisticas)
         .catch(() => {
           // no es crítico: si falla, la tarjeta de estadísticas simplemente no se muestra
+        });
+
+      apiFetch(`/usuarios/${usuario.id}/historial-ranking?tipo=no_oficial`, { token })
+        .then((datos) => {
+          if (datos.length === 0) {
+            setHistorialElo([]);
+            return;
+          }
+          // Se antepone el punto de partida (el eloAntes del primer registro) para que la línea
+          // no arranque "en el aire" en el primer partido.
+          setHistorialElo([
+            { fecha: 'Antes de tu primer partido', elo: datos[0].eloAntes },
+            ...datos.map((d) => ({ fecha: new Date(d.fecha).toLocaleDateString('es-CO'), elo: d.eloDespues })),
+          ]);
+        })
+        .catch(() => {
+          // no es crítico: si falla, el gráfico simplemente no se muestra
         });
 
       const esAdmin = usuario.roles?.some((r) => r.rol === 'administrador');
@@ -68,6 +88,15 @@ export default function Perfil() {
   }
 
   const esAdmin = usuario.roles?.some((r) => r.rol === 'administrador');
+  const deltaRanking = historialElo.length >= 2 ? historialElo[historialElo.length - 1].elo - historialElo[historialElo.length - 2].elo : 0;
+  // Los últimos 5 resultados (de más antiguo a más reciente) a partir de los partidos recientes,
+  // que ya vienen ordenados del más nuevo al más viejo.
+  const formaReciente = estadisticas
+    ? [...estadisticas.partidosRecientes]
+        .slice(0, 5)
+        .reverse()
+        .map((p) => (p.ganadorId === usuario.id ? 'V' : 'D'))
+    : [];
 
   return (
     <ScrollView style={estilos.contenedor} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -109,71 +138,112 @@ export default function Perfil() {
             </View>
             <View style={estilos.separador} />
             <View style={estilos.itemElo}>
-              <Text style={estilos.eloValor}>{usuario.eloNoOficial}</Text>
+              <View style={estilos.filaEloValor}>
+                <Text style={estilos.eloValor}>{usuario.eloNoOficial}</Text>
+                {deltaRanking !== 0 && (
+                  <Text style={[estilos.eloTendencia, { color: deltaRanking > 0 ? colores.exito : colores.error }]}>
+                    {deltaRanking > 0 ? '▲' : '▼'}
+                    {Math.abs(deltaRanking)}
+                  </Text>
+                )}
+              </View>
               <Text style={estilos.eloEtiqueta}>Ranking</Text>
             </View>
           </View>
         </View>
 
-        {estadisticas && (
+        {estadisticas && estadisticas.record.totalPartidos === 0 && (
           <View style={estilos.tarjeta}>
-            <Text style={estilos.tarjetaTitulo}>MIS ESTADÍSTICAS</Text>
-            {estadisticas.record.totalPartidos === 0 ? (
-              <Text style={estilos.statsVacio}>Todavía no tienes partidos confirmados</Text>
-            ) : (
-              <>
-                <View style={estilos.filaStats}>
-                  <View style={estilos.subTarjetaStats}>
-                    <Text style={estilos.statsMiniTitulo}>Récord</Text>
-                    <Text style={estilos.statsRecordValor}>
-                      {estadisticas.record.victorias}-{estadisticas.record.derrotas}
-                    </Text>
-                    <Text style={estilos.statsRecordSub}>
-                      {estadisticas.record.totalPartidos} partidos · {estadisticas.record.porcentajeVictorias}% victorias
-                    </Text>
-                  </View>
-                  <View style={estilos.subTarjetaStats}>
-                    <Text style={estilos.statsMiniTitulo}>Racha actual</Text>
+            <Text style={estilos.statsVacio}>Todavía no tienes partidos confirmados</Text>
+          </View>
+        )}
+
+        {estadisticas && estadisticas.record.totalPartidos > 0 && (
+          <>
+            <View style={estilos.filaStats}>
+              <View style={[estilos.tarjeta, estilos.subTarjetaStats]}>
+                <Text style={estilos.tarjetaTitulo}>Récord</Text>
+                <Text style={estilos.statsRecordValor}>
+                  {estadisticas.record.victorias}-{estadisticas.record.derrotas}
+                </Text>
+                <Text style={estilos.statsRecordSub}>
+                  {estadisticas.record.totalPartidos} partidos · {estadisticas.record.porcentajeVictorias}% victorias
+                </Text>
+                <BarraProporcion victorias={estadisticas.record.victorias} derrotas={estadisticas.record.derrotas} />
+              </View>
+              <View style={[estilos.tarjeta, estilos.subTarjetaStats]}>
+                <Text style={estilos.tarjetaTitulo}>Racha actual</Text>
+                <View
+                  style={[
+                    estilos.badgeRacha,
+                    { backgroundColor: estadisticas.racha.tipo === 'V' ? colores.exitoFondo : colores.errorFondo },
+                  ]}
+                >
+                  <Text
+                    style={[estilos.badgeRachaTexto, { color: estadisticas.racha.tipo === 'V' ? colores.exito : colores.error }]}
+                  >
+                    {estadisticas.racha.cantidad}
+                    {estadisticas.racha.tipo}
+                  </Text>
+                </View>
+                {estadisticas.mejorRachaVictorias > 0 && (
+                  <Text style={estilos.mejorRachaTexto}>
+                    Mejor racha: <Text style={estilos.mejorRachaValor}>{estadisticas.mejorRachaVictorias} victorias</Text>
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {formaReciente.length > 0 && (
+              <View style={estilos.tarjeta}>
+                <Text style={estilos.tarjetaTitulo}>Forma reciente</Text>
+                <View style={estilos.formaFila}>
+                  {formaReciente.map((resultado, i) => (
                     <View
+                      key={i}
                       style={[
-                        estilos.badgeRacha,
-                        { backgroundColor: estadisticas.racha.tipo === 'V' ? colores.exitoFondo : colores.errorFondo },
+                        estilos.formaChip,
+                        { backgroundColor: resultado === 'V' ? colores.exitoFondo : colores.errorFondo },
+                        i === formaReciente.length - 1 && [estilos.formaChipActual, { borderColor: resultado === 'V' ? colores.exito : colores.error }],
                       ]}
                     >
-                      <Text
-                        style={[
-                          estilos.badgeRachaTexto,
-                          { color: estadisticas.racha.tipo === 'V' ? colores.exito : colores.error },
-                        ]}
-                      >
-                        {estadisticas.racha.cantidad}
-                        {estadisticas.racha.tipo}
+                      <Text style={[estilos.formaChipTexto, { color: resultado === 'V' ? colores.exito : colores.error }]}>
+                        {resultado}
                       </Text>
                     </View>
-                  </View>
+                  ))}
                 </View>
-
-                {estadisticas.headToHead.length > 0 && (
-                  <View style={estilos.listaRivales}>
-                    {estadisticas.headToHead.slice(0, 3).map((r) => (
-                      <View key={r.rivalId} style={estilos.filaRival}>
-                        <Avatar nombre={r.rivalNombre} tamano={26} />
-                        <Text style={estilos.rivalNombre}>{r.rivalNombre}</Text>
-                        <Text style={estilos.rivalRecord}>
-                          {r.victorias}-{r.derrotas}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                <Pressable style={estilos.enlaceCompleto} onPress={() => router.push(`/ranking/${usuario.id}?desde=perfil`)}>
-                  <Text style={estilos.enlaceCompletoTexto}>Ver estadísticas completas</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colores.acento} />
-                </Pressable>
-              </>
+              </View>
             )}
-          </View>
+
+            <View style={estilos.tarjeta}>
+              <Text style={estilos.tarjetaTitulo}>Evolución del ranking</Text>
+              <GraficoElo puntos={historialElo} />
+            </View>
+
+            {estadisticas.headToHead.length > 0 && (
+              <View style={estilos.tarjeta}>
+                <Text style={estilos.tarjetaTitulo}>Enfrentamientos</Text>
+                {estadisticas.headToHead.slice(0, 3).map((r, i) => (
+                  <View key={r.rivalId} style={[estilos.filaRival, i > 0 && estilos.filaConDivisor]}>
+                    <View style={estilos.rivalCabecera}>
+                      <Avatar nombre={r.rivalNombre} tamano={26} />
+                      <Text style={estilos.rivalNombre}>{r.rivalNombre}</Text>
+                      <Text style={estilos.rivalRecord}>
+                        {r.victorias}-{r.derrotas}
+                      </Text>
+                    </View>
+                    <BarraProporcion victorias={r.victorias} derrotas={r.derrotas} alto={5} />
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <Pressable style={estilos.enlaceCompleto} onPress={() => router.push(`/ranking/${usuario.id}?desde=perfil`)}>
+              <Text style={estilos.enlaceCompletoTexto}>Ver estadísticas completas</Text>
+              <Ionicons name="chevron-forward" size={14} color={colores.acento} />
+            </Pressable>
+          </>
         )}
 
         {esAdmin && (
@@ -241,7 +311,9 @@ const estilos = StyleSheet.create({
   tarjetasElo: { flexDirection: 'row', alignItems: 'center' },
   itemElo: { flex: 1, alignItems: 'center' },
   separador: { width: 1, height: 40, backgroundColor: colores.borde },
+  filaEloValor: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
   eloValor: { fontSize: 30, fontWeight: '800', color: colores.texto },
+  eloTendencia: { fontSize: 12, fontWeight: '800' },
   eloEtiqueta: { fontSize: 12, color: colores.textoSecundario, marginTop: 4 },
   filaEnlace: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   filaEnlaceTexto: { flex: 1, fontSize: 14, color: colores.texto, fontWeight: '600' },
@@ -262,14 +334,20 @@ const estilos = StyleSheet.create({
   },
   statsVacio: { color: colores.textoSecundario, fontSize: 13 },
   filaStats: { flexDirection: 'row', gap: 10 },
-  subTarjetaStats: { flex: 1, backgroundColor: colores.fondo, borderRadius: 14, padding: 12 },
-  statsMiniTitulo: { fontSize: 10, fontWeight: '700', color: colores.textoSecundario, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 },
+  subTarjetaStats: { flex: 1, marginBottom: 0 },
   statsRecordValor: { fontSize: 22, fontWeight: '800', color: colores.texto },
-  statsRecordSub: { fontSize: 11, color: colores.textoSecundario, marginTop: 2 },
+  statsRecordSub: { fontSize: 11, color: colores.textoSecundario, marginTop: 2, marginBottom: 10 },
   badgeRacha: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: radios.pildora },
   badgeRachaTexto: { fontSize: 16, fontWeight: '800' },
-  listaRivales: { marginTop: 14, gap: 9 },
-  filaRival: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  mejorRachaTexto: { fontSize: 10.5, color: colores.textoSecundario, marginTop: 9 },
+  mejorRachaValor: { color: colores.texto, fontWeight: '700' },
+  formaFila: { flexDirection: 'row', gap: 7 },
+  formaChip: { flex: 1, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  formaChipActual: { borderWidth: 2 },
+  formaChipTexto: { fontWeight: '800', fontSize: 13 },
+  filaRival: { paddingVertical: 9 },
+  filaConDivisor: { borderTopWidth: 1, borderTopColor: colores.borde },
+  rivalCabecera: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 7 },
   rivalNombre: { flex: 1, fontSize: 13, fontWeight: '600', color: colores.texto },
   rivalRecord: { fontSize: 13, fontWeight: '800', color: colores.navy },
   enlaceCompleto: {
