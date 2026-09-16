@@ -188,7 +188,16 @@ router.get('/usuarios', verificarToken, requiereRol('administrador'), async (req
         tipo: 'interno',
         ...(q.length >= 2 ? { nombre: { contains: q, mode: 'insensitive' } } : {}),
       },
-      select: { id: true, nombre: true, correo: true, activo: true, nivel: true, roles: { select: { rol: true } } },
+      select: {
+        id: true,
+        nombre: true,
+        correo: true,
+        activo: true,
+        nivel: true,
+        eloOficial: true,
+        eloNoOficial: true,
+        roles: { select: { rol: true } },
+      },
       orderBy: { nombre: 'asc' },
       take: 200,
     });
@@ -224,6 +233,54 @@ router.patch('/usuarios/:id/nivel', verificarToken, requiereRol('administrador')
     });
 
     return res.status(200).json({ id: usuario.id, nivel });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+const ELO_MINIMO = 0;
+const ELO_MAXIMO = 3000;
+
+// PATCH /usuarios/{id}/elo — solo admin: ajuste manual del ELO (ej. para corregir un error).
+// A diferencia de un partido, esto no queda en el historial de ranking ni cuenta como "tener
+// partidos jugados" — solo se registra en la auditoría, para que quede rastro de quién lo cambió.
+router.patch('/usuarios/:id/elo', verificarToken, requiereRol('administrador'), async (req, res, next) => {
+  try {
+    const { eloOficial, eloNoOficial } = req.body;
+    if (eloOficial === undefined && eloNoOficial === undefined) {
+      return res.status(400).json({ error: 'Debes enviar eloOficial y/o eloNoOficial' });
+    }
+
+    const data = {};
+    for (const [campo, valor] of Object.entries({ eloOficial, eloNoOficial })) {
+      if (valor === undefined) continue;
+      if (!Number.isInteger(valor) || valor < ELO_MINIMO || valor > ELO_MAXIMO) {
+        return res.status(400).json({ error: `${campo} debe ser un entero entre ${ELO_MINIMO} y ${ELO_MAXIMO}` });
+      }
+      data[campo] = valor;
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { id: req.params.id } });
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const actualizado = await prisma.usuario.update({ where: { id: usuario.id }, data });
+
+    await registrarAuditoria(prisma, {
+      usuarioId: req.usuarioId,
+      accion: 'ajustar_elo_manual',
+      entidadTipo: 'usuario',
+      entidadId: usuario.id,
+      detalle: {
+        eloOficialAnterior: usuario.eloOficial,
+        eloOficialNuevo: actualizado.eloOficial,
+        eloNoOficialAnterior: usuario.eloNoOficial,
+        eloNoOficialNuevo: actualizado.eloNoOficial,
+      },
+    });
+
+    return res.status(200).json({ id: usuario.id, eloOficial: actualizado.eloOficial, eloNoOficial: actualizado.eloNoOficial });
   } catch (error) {
     return next(error);
   }

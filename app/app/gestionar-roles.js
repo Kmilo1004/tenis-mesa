@@ -21,6 +21,10 @@ export default function GestionarRoles() {
   const [actualizando, setActualizando] = useState(null); // `${usuarioId}:${rol}`
   const [restableciendoId, setRestableciendoId] = useState(null);
   const [cambiandoNivelId, setCambiandoNivelId] = useState(null);
+  const [editandoEloId, setEditandoEloId] = useState(null);
+  const [eloOficialInput, setEloOficialInput] = useState('');
+  const [eloNoOficialInput, setEloNoOficialInput] = useState('');
+  const [guardandoEloId, setGuardandoEloId] = useState(null);
 
   const [mostrarNivelEnRanking, setMostrarNivelEnRanking] = useState(false);
   const [guardandoConfig, setGuardandoConfig] = useState(false);
@@ -96,6 +100,49 @@ export default function GestionarRoles() {
     } finally {
       setCambiandoNivelId(null);
     }
+  }
+
+  function abrirEdicionElo(item) {
+    setEditandoEloId(item.id);
+    setEloOficialInput(String(item.eloOficial));
+    setEloNoOficialInput(String(item.eloNoOficial));
+  }
+
+  function guardarElo(item) {
+    const eloOficial = parseInt(eloOficialInput, 10);
+    const eloNoOficial = parseInt(eloNoOficialInput, 10);
+    if (!Number.isInteger(eloOficial) || !Number.isInteger(eloNoOficial)) {
+      Alert.alert('Valor inválido', 'El ELO debe ser un número entero.');
+      return;
+    }
+
+    Alert.alert(
+      '¿Cambiar el ELO a mano?',
+      `Vas a poner el Ranking Interno de ${item.nombre} en ${eloOficial} y el Ranking en ${eloNoOficial} directamente, sin que haya jugado un partido. Esto puede distorsionar el ranking del club — úsalo solo para corregir un error. Queda registrado en la auditoría.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cambiar de todas formas',
+          style: 'destructive',
+          onPress: async () => {
+            setGuardandoEloId(item.id);
+            try {
+              await apiFetch(`/usuarios/${item.id}/elo`, {
+                method: 'PATCH',
+                token,
+                body: JSON.stringify({ eloOficial, eloNoOficial }),
+              });
+              setUsuarios((actuales) => actuales.map((u) => (u.id === item.id ? { ...u, eloOficial, eloNoOficial } : u)));
+              setEditandoEloId(null);
+            } catch (err) {
+              Alert.alert('No se pudo cambiar el ELO', err.message);
+            } finally {
+              setGuardandoEloId(null);
+            }
+          },
+        },
+      ],
+    );
   }
 
   function restablecerPassword(item) {
@@ -220,6 +267,58 @@ export default function GestionarRoles() {
                   })}
                 </View>
 
+                <Text style={estilos.etiquetaNivelSeccion}>ELO</Text>
+                {editandoEloId === item.id ? (
+                  <View>
+                    <Text style={estilos.avisoElo}>
+                      Cambiarlo a mano no queda como un partido jugado y puede distorsionar el ranking. Solo para corregir errores.
+                    </Text>
+                    <View style={estilos.filaCamposElo}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={estilos.etiquetaCampoElo}>Ranking Interno</Text>
+                        <TextInput
+                          style={estilos.inputElo}
+                          keyboardType="number-pad"
+                          value={eloOficialInput}
+                          onChangeText={(v) => setEloOficialInput(v.replace(/[^0-9]/g, ''))}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={estilos.etiquetaCampoElo}>Ranking</Text>
+                        <TextInput
+                          style={estilos.inputElo}
+                          keyboardType="number-pad"
+                          value={eloNoOficialInput}
+                          onChangeText={(v) => setEloNoOficialInput(v.replace(/[^0-9]/g, ''))}
+                        />
+                      </View>
+                    </View>
+                    <View style={estilos.filaBotonesElo}>
+                      <Pressable onPress={() => setEditandoEloId(null)} disabled={guardandoEloId === item.id}>
+                        <Text style={estilos.botonCancelarEloTexto}>Cancelar</Text>
+                      </Pressable>
+                      <Pressable
+                        style={estilos.botonGuardarElo}
+                        onPress={() => guardarElo(item)}
+                        disabled={guardandoEloId === item.id || !eloOficialInput || !eloNoOficialInput}
+                      >
+                        {guardandoEloId === item.id ? (
+                          <ActivityIndicator size="small" color={colores.textoClaro} />
+                        ) : (
+                          <Text style={estilos.botonGuardarEloTexto}>Guardar ELO</Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <Pressable style={estilos.filaEloResumen} onPress={() => abrirEdicionElo(item)}>
+                    <Text style={estilos.eloResumenTexto}>
+                      Interno {item.eloOficial} · Ranking {item.eloNoOficial}
+                    </Text>
+                    <Text style={estilos.eloResumenEditar}>Editar</Text>
+                  </Pressable>
+                )}
+
                 <Pressable
                   style={estilos.enlaceRestablecer}
                   onPress={() => restablecerPassword(item)}
@@ -314,4 +413,38 @@ const estilos = StyleSheet.create({
   chipNivelTexto: { color: colores.texto, fontWeight: '600', fontSize: 12 },
   enlaceRestablecer: { marginTop: 12, alignItems: 'center', paddingVertical: 4 },
   textoRestablecer: { fontSize: 12.5, color: colores.error, fontWeight: '600' },
+  filaEloResumen: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colores.gris,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  eloResumenTexto: { fontSize: 12.5, fontWeight: '600', color: colores.texto },
+  eloResumenEditar: { fontSize: 12, fontWeight: '700', color: colores.acento },
+  avisoElo: {
+    fontSize: 11.5,
+    color: colores.advertencia,
+    backgroundColor: colores.advertenciaFondo,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+  },
+  filaCamposElo: { flexDirection: 'row', gap: 10 },
+  etiquetaCampoElo: { fontSize: 11, color: colores.textoSecundario, marginBottom: 4, fontWeight: '600' },
+  inputElo: {
+    borderWidth: 1,
+    borderColor: colores.borde,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: colores.texto,
+  },
+  filaBotonesElo: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 16, marginTop: 10 },
+  botonCancelarEloTexto: { fontSize: 13, color: colores.textoSecundario, fontWeight: '600' },
+  botonGuardarElo: { backgroundColor: colores.navy, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14 },
+  botonGuardarEloTexto: { color: colores.textoClaro, fontWeight: '700', fontSize: 13 },
 });
