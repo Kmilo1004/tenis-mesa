@@ -6,9 +6,9 @@ const router = express.Router();
 // Store), este valor se actualiza a mano cada vez que se genera un build nuevo en EAS: subir
 // "version" al mismo valor que app.json y pegar el link de descarga que entrega `eas build`.
 const ULTIMA_VERSION = {
-  version: '2.1.0',
-  url: 'https://expo.dev/artifacts/eas/zh3KdIHWOXwjV1jZl61_kl9hv9hr_wrQN0DBM2uiZNw.apk',
-  notas: 'Ahora puedes recuperar tu contraseña por correo (o pedirle a un admin que te la restablezca), y agregar observaciones privadas a tus partidos confirmados que solo tú puedes ver. Además: ícono propio en las notificaciones, botón de volver arreglado en el perfil de un jugador del ranking, y orden fijo de partidos en grupos de 4 jugadores.',
+  version: '2.2.0',
+  url: 'https://expo.dev/artifacts/eas/EQ23mQOg9BHE9AYMs0wIdFVUeqjSUnhq_JAHh1MguEk.apk',
+  notas: 'Nueva pantalla de Configuración (tuerquita en Perfil): cambiar tu nombre, contraseña, notificaciones push y ver la versión. Panel de "Mis estadísticas" con más detalle (evolución del ranking, forma reciente, mejor racha). Y llegaron los niveles de jugador (Principiante, Formativo, Precompetitivo, Competitivo), con ELO inicial según el nivel y una etiqueta opcional en el ranking.',
 };
 
 // GET /version — pública, la consulta la app para saber si hay un APK más nuevo disponible.
