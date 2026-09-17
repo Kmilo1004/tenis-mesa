@@ -4,6 +4,26 @@ const PUNTOS_MINIMOS = 11;
 const MARGEN_MINIMO = 2;
 const SETS_GANADOS_POR_FORMATO = [3, 4];
 
+// Valida el marcador de UN set suelto (usado tanto por validarMarcador como al ir agregando sets
+// de a uno en un desafío en vivo, antes de saber siquiera si el partido ya está completo).
+function puntosSetValidos(puntosA, puntosB) {
+  const a = Number(puntosA);
+  const b = Number(puntosB);
+
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0) {
+    return { valido: false, error: 'Los puntos deben ser enteros no negativos' };
+  }
+
+  const mayor = Math.max(a, b);
+  const diferencia = Math.abs(a - b);
+
+  if (mayor < PUNTOS_MINIMOS || diferencia < MARGEN_MINIMO) {
+    return { valido: false, error: `Marcador de set inválido (${a}-${b})` };
+  }
+
+  return { valido: true };
+}
+
 function validarMarcador(sets) {
   if (!Array.isArray(sets) || sets.length === 0) {
     return { valido: false, error: 'Debes enviar al menos un set' };
@@ -14,18 +34,9 @@ function validarMarcador(sets) {
   }
 
   for (let i = 0; i < sets.length; i++) {
-    const a = Number(sets[i].puntosJugadorA);
-    const b = Number(sets[i].puntosJugadorB);
-
-    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0) {
-      return { valido: false, error: `Set ${i + 1}: los puntos deben ser enteros no negativos` };
-    }
-
-    const mayor = Math.max(a, b);
-    const diferencia = Math.abs(a - b);
-
-    if (mayor < PUNTOS_MINIMOS || diferencia < MARGEN_MINIMO) {
-      return { valido: false, error: `Set ${i + 1}: marcador inválido (${a}-${b})` };
+    const resultadoSet = puntosSetValidos(sets[i].puntosJugadorA, sets[i].puntosJugadorB);
+    if (!resultadoSet.valido) {
+      return { valido: false, error: `Set ${i + 1}: ${resultadoSet.error}` };
     }
   }
 
@@ -64,4 +75,4 @@ function limpiarSets(sets) {
   }));
 }
 
-module.exports = { validarMarcador, limpiarSets };
+module.exports = { validarMarcador, limpiarSets, puntosSetValidos };

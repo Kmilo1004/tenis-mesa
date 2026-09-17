@@ -10,7 +10,7 @@ async function calcularTablaGrupo(client, grupoId) {
 
   const partidos = await client.partido.findMany({
     where: { grupoId, estado: 'confirmado' },
-    include: { sets: true },
+    include: { sets: { select: { puntosJugadorA: true, puntosJugadorB: true } } },
   });
 
   const estadisticas = new Map();

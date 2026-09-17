@@ -7,6 +7,7 @@ const TITULOS_PUSH = {
   cambio_ranking: 'Cambio en tu ranking',
   disputa: 'Disputa de resultado',
   torneo: 'Torneo',
+  desafio: 'Desafío',
 };
 
 // Notificaciones in-app + push real. `client` puede ser `prisma` o el `tx` de una transacción en

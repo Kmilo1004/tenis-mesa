@@ -1,6 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
-const { validarMarcador, limpiarSets } = require('../lib/marcador');
+const { validarMarcador, limpiarSets, puntosSetValidos } = require('../lib/marcador');
 const {
   DOS_DIAS_MS,
   expirarSiVencido,
@@ -144,7 +144,224 @@ router.get('/partidos/:id', verificarToken, async (req, res, next) => {
       }
     }
 
+    // El análisis por set es privado — jamás va en INCLUYE_JUGADORES (se filtraría a cualquiera
+    // que pueda ver el partido). Acá, y solo acá, se calcula "el mío" según quién pregunta.
+    if (partido.jugadorAId === req.usuarioId || partido.jugadorBId === req.usuarioId) {
+      const columnaPropia = partido.jugadorAId === req.usuarioId ? 'analisisJugadorA' : 'analisisJugadorB';
+      const analisisPorSet = await prisma.setPartido.findMany({
+        where: { partidoId: partido.id },
+        select: { numeroSet: true, [columnaPropia]: true },
+      });
+      const mapaAnalisis = new Map(analisisPorSet.map((s) => [s.numeroSet, s[columnaPropia]]));
+      partido.sets = partido.sets.map((s) => ({ ...s, analisisPropio: mapaAnalisis.get(s.numeroSet) || null }));
+    } else {
+      partido.sets = partido.sets.map((s) => ({ ...s, analisisPropio: null }));
+    }
+
     return res.status(200).json(partido);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /partidos/desafios — manda un desafío a otro jugador: crea el partido sin marcador, a la
+// espera de que el rival lo acepte antes de poder empezar a cargar sets.
+router.post('/partidos/desafios', verificarToken, async (req, res, next) => {
+  try {
+    const { jugadorBId } = req.body;
+    if (!jugadorBId) {
+      return res.status(400).json({ error: 'jugadorBId es obligatorio' });
+    }
+    if (jugadorBId === req.usuarioId) {
+      return res.status(400).json({ error: 'Un jugador no puede desafiarse a sí mismo' });
+    }
+
+    const [retador, retado] = await Promise.all([
+      prisma.usuario.findUnique({ where: { id: req.usuarioId } }),
+      prisma.usuario.findUnique({ where: { id: jugadorBId } }),
+    ]);
+    if (!retado) {
+      return res.status(404).json({ error: 'El rival no existe' });
+    }
+    if (retador.tipo !== 'interno' || retado.tipo !== 'interno') {
+      return res.status(400).json({ error: 'Los desafíos solo pueden ser entre usuarios internos (RF-17)' });
+    }
+
+    const partido = await prisma.partido.create({
+      data: {
+        jugadorAId: req.usuarioId,
+        jugadorBId,
+        tipoPartido: 'casual',
+        afectaRanking: 'no_oficial',
+        estado: 'desafio_pendiente',
+        fechaPartido: new Date(),
+        registradoPor: req.usuarioId,
+      },
+      include: INCLUYE_JUGADORES,
+    });
+
+    await crearNotificacion(prisma, {
+      usuarioId: jugadorBId,
+      tipo: 'desafio',
+      mensaje: `${retador.nombre} te desafió a un partido`,
+      referenciaId: partido.id,
+    });
+
+    return res.status(201).json(partido);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /partidos/{id}/desafio/responder — el rival acepta o rechaza el desafío. Body: { aceptar }.
+router.post('/partidos/:id/desafio/responder', verificarToken, async (req, res, next) => {
+  try {
+    const { aceptar } = req.body;
+    if (typeof aceptar !== 'boolean') {
+      return res.status(400).json({ error: 'aceptar debe ser true o false' });
+    }
+
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (partido.estado !== 'desafio_pendiente') {
+      return res.status(409).json({ error: `Este desafío ya no está pendiente de respuesta (estado actual: ${partido.estado})` });
+    }
+    if (req.usuarioId !== partido.jugadorBId) {
+      return res.status(403).json({ error: 'Solo el jugador desafiado puede aceptar o rechazar el desafío' });
+    }
+
+    const retado = await prisma.usuario.findUnique({ where: { id: req.usuarioId } });
+    const partidoActualizado = await prisma.partido.update({
+      where: { id: partido.id },
+      data: { estado: aceptar ? 'en_juego' : 'desafio_rechazado' },
+      include: INCLUYE_JUGADORES,
+    });
+
+    await crearNotificacion(prisma, {
+      usuarioId: partido.jugadorAId,
+      tipo: 'desafio',
+      mensaje: aceptar ? `${retado.nombre} aceptó tu desafío. ¡A jugar!` : `${retado.nombre} rechazó tu desafío`,
+      referenciaId: partido.id,
+    });
+
+    return res.status(200).json(partidoActualizado);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /partidos/{id}/sets — agrega el resultado de un set a un desafío en vivo, a medida que van
+// terminando. Cualquiera de los dos jugadores puede cargarlo (se asume que juegan juntos en el
+// momento); cuando el marcador acumulado ya define un ganador (mejor de 5 o de 7), el partido pasa
+// solo a "pendiente" para que el rival de quien registró el desafío lo confirme, igual que un
+// partido casual cargado de una sola vez.
+router.post('/partidos/:id/sets', verificarToken, async (req, res, next) => {
+  try {
+    const { puntosJugadorA, puntosJugadorB } = req.body;
+    const resultadoSet = puntosSetValidos(puntosJugadorA, puntosJugadorB);
+    if (!resultadoSet.valido) {
+      return res.status(400).json({ error: resultadoSet.error });
+    }
+
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id }, include: { sets: true } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (partido.jugadorAId !== req.usuarioId && partido.jugadorBId !== req.usuarioId) {
+      return res.status(403).json({ error: 'Solo los jugadores del desafío pueden cargar sets' });
+    }
+    if (partido.estado !== 'en_juego') {
+      return res.status(409).json({ error: `Este partido no está en juego (estado actual: ${partido.estado})` });
+    }
+    if (partido.sets.length >= 7) {
+      return res.status(409).json({ error: 'Este partido ya tiene el máximo de 7 sets' });
+    }
+
+    await prisma.setPartido.create({
+      data: {
+        partidoId: partido.id,
+        numeroSet: partido.sets.length + 1,
+        puntosJugadorA: Number(puntosJugadorA),
+        puntosJugadorB: Number(puntosJugadorB),
+      },
+    });
+
+    const setsHastaAhora = [...partido.sets, { puntosJugadorA: Number(puntosJugadorA), puntosJugadorB: Number(puntosJugadorB) }].map(
+      (s) => ({ puntosJugadorA: s.puntosJugadorA, puntosJugadorB: s.puntosJugadorB }),
+    );
+    const resultado = validarMarcador(setsHastaAhora);
+
+    if (!resultado.valido) {
+      // Todavía no se define el partido con los sets jugados hasta ahora — sigue en juego.
+      const partidoEnCurso = await prisma.partido.findUnique({ where: { id: partido.id }, include: INCLUYE_JUGADORES });
+      return res.status(201).json(partidoEnCurso);
+    }
+
+    const ganadorId = resultado.ganador === 'A' ? partido.jugadorAId : partido.jugadorBId;
+    const partidoTerminado = await prisma.partido.update({
+      where: { id: partido.id },
+      data: {
+        ganadorId,
+        estado: 'pendiente',
+        fechaLimiteConfirmacion: new Date(Date.now() + DOS_DIAS_MS),
+      },
+      include: INCLUYE_JUGADORES,
+    });
+
+    // RF-20: avisa a quien no registró el desafío (el retado) que ya hay un resultado por confirmar
+    const confirmaId = partido.registradoPor === partido.jugadorAId ? partido.jugadorBId : partido.jugadorAId;
+    const [jugadorA, jugadorB] = await Promise.all([
+      prisma.usuario.findUnique({ where: { id: partido.jugadorAId } }),
+      prisma.usuario.findUnique({ where: { id: partido.jugadorBId } }),
+    ]);
+    const registrante = partido.registradoPor === partido.jugadorAId ? jugadorA : jugadorB;
+    await crearNotificacion(prisma, {
+      usuarioId: confirmaId,
+      tipo: 'confirmacion_pendiente',
+      mensaje: `${registrante.nombre} reportó un resultado pendiente de tu confirmación`,
+      referenciaId: partido.id,
+    });
+
+    return res.status(201).json(partidoTerminado);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PUT /partidos/{id}/sets/{numeroSet}/analisis — crea, actualiza o borra (con texto vacío) el
+// análisis privado de UN jugador sobre ese set en particular.
+router.put('/partidos/:id/sets/:numeroSet/analisis', verificarToken, async (req, res, next) => {
+  try {
+    const { texto } = req.body;
+    if (typeof texto !== 'string') {
+      return res.status(400).json({ error: 'texto es obligatorio (puede ser un string vacío para borrarlo)' });
+    }
+
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (partido.jugadorAId !== req.usuarioId && partido.jugadorBId !== req.usuarioId) {
+      return res.status(403).json({ error: 'Solo puedes anotar análisis en tus propios partidos' });
+    }
+
+    const numeroSet = parseInt(req.params.numeroSet, 10);
+    const set = await prisma.setPartido.findUnique({ where: { partidoId_numeroSet: { partidoId: partido.id, numeroSet } } });
+    if (!set) {
+      return res.status(404).json({ error: 'Ese set no existe en este partido' });
+    }
+
+    const columnaPropia = partido.jugadorAId === req.usuarioId ? 'analisisJugadorA' : 'analisisJugadorB';
+    const textoLimpio = texto.trim() || null;
+
+    await prisma.setPartido.update({
+      where: { id: set.id },
+      data: { [columnaPropia]: textoLimpio },
+    });
+
+    return res.status(200).json({ numeroSet, analisisPropio: textoLimpio });
   } catch (error) {
     return next(error);
   }

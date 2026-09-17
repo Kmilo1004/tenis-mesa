@@ -7,7 +7,7 @@ import { useAuth } from '../../src/auth/AuthContext';
 import EncabezadoApp from '../../src/components/EncabezadoApp';
 import { colores, radios } from '../../src/theme/colores';
 
-const TIPOS_CON_PARTIDO = ['confirmacion_pendiente', 'partido_proximo'];
+const TIPOS_CON_PARTIDO = ['confirmacion_pendiente', 'partido_proximo', 'desafio'];
 
 export default function Notificaciones() {
   const { token } = useAuth();

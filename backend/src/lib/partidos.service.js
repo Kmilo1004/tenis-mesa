@@ -7,7 +7,7 @@ const { notificarPartidoProximo, notificarCambioRanking } = require('./notificac
 const DOS_DIAS_MS = 2 * 24 * 60 * 60 * 1000;
 
 const INCLUYE_JUGADORES = {
-  sets: true,
+  sets: { orderBy: { numeroSet: 'asc' }, select: { id: true, numeroSet: true, puntosJugadorA: true, puntosJugadorB: true } },
   jugadorA: { select: { id: true, nombre: true } },
   jugadorB: { select: { id: true, nombre: true } },
   ganador: { select: { id: true, nombre: true } },

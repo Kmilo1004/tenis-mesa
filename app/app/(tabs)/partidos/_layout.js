@@ -15,6 +15,7 @@ export default function LayoutPartidos() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="nuevo" options={{ title: 'Registrar partido', presentation: 'modal' }} />
+      <Stack.Screen name="desafio" options={{ title: 'Mandar desafío', presentation: 'modal' }} />
       <Stack.Screen name="[id]" options={{ title: 'Detalle del partido' }} />
     </Stack>
   );

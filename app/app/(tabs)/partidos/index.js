@@ -23,6 +23,9 @@ const ETIQUETAS_ESTADO = {
   en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
   anulado: { texto: 'Anulado', color: colores.error, fondo: colores.errorFondo },
   por_definir: { texto: 'Por definir', color: colores.textoSecundario, fondo: colores.gris },
+  desafio_pendiente: { texto: 'Desafío pendiente', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  desafio_rechazado: { texto: 'Desafío rechazado', color: colores.textoSecundario, fondo: colores.gris },
+  en_juego: { texto: 'En juego', color: colores.info, fondo: colores.infoFondo },
 };
 
 // Cuenta cuántos sets ganó cada lado a partir del marcador de cada set.
@@ -70,7 +73,7 @@ export default function ListaPartidos() {
 
   // Los pendientes de confirmar siempre quedan primero, sin importar el criterio elegido; dentro
   // de cada grupo (pendientes / resto) se ordena según ese criterio.
-  const ESTADOS_PENDIENTES = ['pendiente', 'pendiente_aprobacion'];
+  const ESTADOS_PENDIENTES = ['pendiente', 'pendiente_aprobacion', 'desafio_pendiente', 'en_juego'];
   const partidosOrdenados = [...partidos].sort((a, b) => {
     const pendienteA = ESTADOS_PENDIENTES.includes(a.estado) ? 0 : 1;
     const pendienteB = ESTADOS_PENDIENTES.includes(b.estado) ? 0 : 1;
@@ -158,6 +161,13 @@ export default function ListaPartidos() {
         />
       )}
 
+      <Link href="/partidos/desafio" asChild>
+        <Pressable style={estilos.fabSecundario}>
+          <Ionicons name="flash" size={16} color={colores.navy} />
+          <Text style={estilos.fabSecundarioTexto}>Desafiar</Text>
+        </Pressable>
+      </Link>
+
       <Link href="/partidos/nuevo" asChild>
         <Pressable style={estilos.fab}>
           <Ionicons name="add" size={18} color={colores.textoClaro} />
@@ -211,4 +221,20 @@ const estilos = StyleSheet.create({
     elevation: 3,
   },
   fabTexto: { color: colores.textoClaro, fontWeight: '700' },
+  fabSecundario: {
+    position: 'absolute',
+    bottom: 78,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colores.tarjeta,
+    borderWidth: 1,
+    borderColor: colores.navy,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: radios.pildora,
+    elevation: 3,
+  },
+  fabSecundarioTexto: { color: colores.navy, fontWeight: '700', fontSize: 13 },
 });

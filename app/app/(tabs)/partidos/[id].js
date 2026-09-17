@@ -22,6 +22,9 @@ const ETIQUETAS_ESTADO = {
   en_revision: { texto: 'En disputa', color: colores.info, fondo: colores.infoFondo },
   anulado: { texto: 'Anulado', color: colores.error, fondo: colores.errorFondo },
   por_definir: { texto: 'Por definir', color: colores.textoSecundario, fondo: colores.gris },
+  desafio_pendiente: { texto: 'Desafío pendiente', color: colores.advertencia, fondo: colores.advertenciaFondo },
+  desafio_rechazado: { texto: 'Desafío rechazado', color: colores.textoSecundario, fondo: colores.gris },
+  en_juego: { texto: 'En juego', color: colores.info, fondo: colores.infoFondo },
 };
 
 export default function DetallePartido() {
@@ -45,9 +48,14 @@ export default function DetallePartido() {
   const [notaOriginal, setNotaOriginal] = useState('');
   const [notaCargando, setNotaCargando] = useState(false);
   const [notaGuardando, setNotaGuardando] = useState(false);
+  const [setEnVivo, setSetEnVivo] = useState({ puntosJugadorA: '', puntosJugadorB: '' });
+  const [analisisEditando, setAnalisisEditando] = useState(null);
+  const [analisisBorrador, setAnalisisBorrador] = useState('');
+  const [analisisGuardando, setAnalisisGuardando] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
+    setError(null);
     try {
       const datos = await apiFetch(`/partidos/${id}`, { token });
       setPartido(datos);
@@ -143,6 +151,10 @@ export default function DetallePartido() {
     partido.afectaRanking === 'no_oficial' &&
     !partido.promovidoAOficial;
   const puedeRescatar = esAdmin && partido.estado === 'descartado';
+  const puedoResponderDesafio = partido.estado === 'desafio_pendiente' && partido.jugadorBId === usuario.id;
+  const esperandoRespuestaDesafio = partido.estado === 'desafio_pendiente' && partido.jugadorAId === usuario.id;
+  const puedoAgregarSetEnVivo = partido.estado === 'en_juego' && esParticipante;
+  const listoSetEnVivo = setEnVivo.puntosJugadorA !== '' && setEnVivo.puntosJugadorB !== '';
   const etiquetaEstado = ETIQUETAS_ESTADO[partido.estado] || ETIQUETAS_ESTADO.por_definir;
 
   async function confirmar() {
@@ -314,6 +326,62 @@ export default function DetallePartido() {
     }
   }
 
+  async function responderDesafio(aceptar) {
+    setEnviando(true);
+    setError(null);
+    try {
+      await apiFetch(`/partidos/${id}/desafio/responder`, { method: 'POST', token, body: JSON.stringify({ aceptar }) });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function agregarSetEnVivo() {
+    setEnviando(true);
+    setError(null);
+    try {
+      await apiFetch(`/partidos/${id}/sets`, {
+        method: 'POST',
+        token,
+        body: JSON.stringify({
+          puntosJugadorA: Number(setEnVivo.puntosJugadorA),
+          puntosJugadorB: Number(setEnVivo.puntosJugadorB),
+        }),
+      });
+      setSetEnVivo({ puntosJugadorA: '', puntosJugadorB: '' });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  function abrirAnalisis(numeroSet, textoActual) {
+    setAnalisisEditando(numeroSet);
+    setAnalisisBorrador(textoActual || '');
+  }
+
+  async function guardarAnalisis(numeroSet) {
+    setAnalisisGuardando(true);
+    try {
+      await apiFetch(`/partidos/${id}/sets/${numeroSet}/analisis`, {
+        method: 'PUT',
+        token,
+        body: JSON.stringify({ texto: analisisBorrador }),
+      });
+      setAnalisisEditando(null);
+      await cargar();
+    } catch (err) {
+      Alert.alert('No se pudo guardar', err.message);
+    } finally {
+      setAnalisisGuardando(false);
+    }
+  }
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={estilos.contenedor}>
@@ -352,21 +420,98 @@ export default function DetallePartido() {
               </View>
             )}
             <View style={estilos.marcador}>
-              {partido.sets.map((s, i) => {
+              {partido.sets.map((s) => {
                 const puntosIzq = esParticipante ? (soyJugadorA ? s.puntosJugadorA : s.puntosJugadorB) : s.puntosJugadorA;
                 const puntosDer = esParticipante ? (soyJugadorA ? s.puntosJugadorB : s.puntosJugadorA) : s.puntosJugadorB;
                 const gane = puntosIzq > puntosDer;
+                const editandoEsteSet = analisisEditando === s.numeroSet;
                 return (
-                  <View key={s.id} style={[estilos.set, gane && estilos.setGanado]}>
-                    <Text style={estilos.setNumero}>Set {i + 1}</Text>
-                    <Text style={[estilos.setPuntos, gane && estilos.setPuntosGanado]}>{puntosIzq}</Text>
-                    <Text style={estilos.setGuion}>-</Text>
-                    <Text style={estilos.setPuntos}>{puntosDer}</Text>
+                  <View key={s.id} style={estilos.filaSet}>
+                    <View style={[estilos.set, gane && estilos.setGanado]}>
+                      <Text style={estilos.setNumero}>Set {s.numeroSet}</Text>
+                      <Text style={[estilos.setPuntos, gane && estilos.setPuntosGanado]}>{puntosIzq}</Text>
+                      <Text style={estilos.setGuion}>-</Text>
+                      <Text style={estilos.setPuntos}>{puntosDer}</Text>
+                    </View>
+
+                    {esParticipante &&
+                      (editandoEsteSet ? (
+                        <View style={estilos.analisisEditor}>
+                          <TextInput
+                            style={estilos.textareaAnalisis}
+                            multiline
+                            autoFocus
+                            placeholder="Análisis de este set (solo tú lo ves)..."
+                            placeholderTextColor={colores.textoSecundario}
+                            value={analisisBorrador}
+                            onChangeText={setAnalisisBorrador}
+                          />
+                          <View style={estilos.filaAnalisisBotones}>
+                            <Pressable onPress={() => setAnalisisEditando(null)} disabled={analisisGuardando}>
+                              <Text style={estilos.cancelar}>Cancelar</Text>
+                            </Pressable>
+                            <Pressable
+                              style={estilos.botonIconoGuardar}
+                              onPress={() => guardarAnalisis(s.numeroSet)}
+                              disabled={analisisGuardando}
+                            >
+                              {analisisGuardando ? (
+                                <ActivityIndicator color={colores.textoClaro} size="small" />
+                              ) : (
+                                <Ionicons name="pencil" size={16} color={colores.textoClaro} />
+                              )}
+                            </Pressable>
+                          </View>
+                        </View>
+                      ) : s.analisisPropio ? (
+                        <Pressable style={estilos.filaAnalisisTexto} onPress={() => abrirAnalisis(s.numeroSet, s.analisisPropio)}>
+                          <Text style={estilos.analisisTexto} numberOfLines={3}>
+                            {s.analisisPropio}
+                          </Text>
+                          <Ionicons name="pencil-outline" size={13} color={colores.textoSecundario} />
+                        </Pressable>
+                      ) : (
+                        <Pressable onPress={() => abrirAnalisis(s.numeroSet, '')}>
+                          <Text style={estilos.agregarAnalisis}>+ Agregar análisis de este set</Text>
+                        </Pressable>
+                      ))}
                   </View>
                 );
               })}
             </View>
           </>
+        )}
+
+        {puedoAgregarSetEnVivo && (
+          <View style={estilos.filaSetEnVivo}>
+            <Text style={estilos.etiquetaSetEnVivo}>Set {partido.sets.length + 1}</Text>
+            <TextInput
+              style={estilos.inputSetEnVivo}
+              keyboardType="number-pad"
+              maxLength={2}
+              placeholder={partido.jugadorA?.nombre?.split(' ')[0] || 'A'}
+              placeholderTextColor={colores.textoSecundario}
+              value={setEnVivo.puntosJugadorA}
+              onChangeText={(v) => setSetEnVivo((s) => ({ ...s, puntosJugadorA: v.replace(/[^0-9]/g, '') }))}
+            />
+            <Text style={estilos.setGuion}>-</Text>
+            <TextInput
+              style={estilos.inputSetEnVivo}
+              keyboardType="number-pad"
+              maxLength={2}
+              placeholder={partido.jugadorB?.nombre?.split(' ')[0] || 'B'}
+              placeholderTextColor={colores.textoSecundario}
+              value={setEnVivo.puntosJugadorB}
+              onChangeText={(v) => setSetEnVivo((s) => ({ ...s, puntosJugadorB: v.replace(/[^0-9]/g, '') }))}
+            />
+            <Pressable
+              style={[estilos.botonAgregarSet, (!listoSetEnVivo || enviando) && estilos.botonDeshabilitado]}
+              onPress={agregarSetEnVivo}
+              disabled={!listoSetEnVivo || enviando}
+            >
+              {enviando ? <ActivityIndicator color={colores.textoClaro} size="small" /> : <Ionicons name="add" size={18} color={colores.textoClaro} />}
+            </Pressable>
+          </View>
         )}
 
         {partido.ganador && (
@@ -396,7 +541,24 @@ export default function DetallePartido() {
         </View>
       )}
 
+      {esperandoRespuestaDesafio && (
+        <View style={estilos.avisoDisputa}>
+          <Text style={estilos.avisoDisputaTexto}>Esperando que {rival?.nombre || 'tu rival'} responda tu desafío.</Text>
+        </View>
+      )}
+
       {error && <Text style={estilos.error}>{error}</Text>}
+
+      {puedoResponderDesafio && (
+        <View style={estilos.acciones}>
+          <Pressable style={estilos.boton} onPress={() => responderDesafio(true)} disabled={enviando}>
+            {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Aceptar desafío</Text>}
+          </Pressable>
+          <Pressable style={estilos.botonSecundario} onPress={() => responderDesafio(false)} disabled={enviando}>
+            <Text style={estilos.botonSecundarioTexto}>Rechazar</Text>
+          </Pressable>
+        </View>
+      )}
 
       {puedoResponder && !mostrarDisputa && (
         <View style={estilos.acciones}>
@@ -651,10 +813,12 @@ const estilos = StyleSheet.create({
   fecha: { color: colores.textoSecundario, fontSize: 12 },
   filaNombresMarcador: { flexDirection: 'row', gap: 40, marginTop: 20, justifyContent: 'center' },
   nombreMarcador: { fontSize: 12, fontWeight: '700', color: colores.textoSecundario, maxWidth: 130 },
-  marcador: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10, justifyContent: 'center' },
+  marcador: { flexDirection: 'column', gap: 8, marginTop: 10, width: '100%' },
+  filaSet: { width: '100%' },
   set: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colores.gris,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -666,6 +830,48 @@ const estilos = StyleSheet.create({
   setPuntos: { fontSize: 17, fontWeight: '700', color: colores.texto, width: 20, textAlign: 'center' },
   setPuntosGanado: { color: colores.exito },
   setGuion: { color: colores.textoSecundario },
+  filaAnalisisTexto: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+  },
+  analisisTexto: { flex: 1, fontSize: 12, color: colores.textoSecundario, fontStyle: 'italic' },
+  agregarAnalisis: { fontSize: 12, color: colores.navy, fontWeight: '600', paddingHorizontal: 10, paddingTop: 6 },
+  analisisEditor: { paddingHorizontal: 10, paddingTop: 8 },
+  textareaAnalisis: {
+    borderWidth: 1,
+    borderColor: colores.borde,
+    borderRadius: 10,
+    padding: 10,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    color: colores.texto,
+    fontSize: 13,
+  },
+  filaAnalisisBotones: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  filaSetEnVivo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, width: '100%' },
+  etiquetaSetEnVivo: { fontSize: 12, color: colores.textoSecundario, fontWeight: '600', width: 44 },
+  inputSetEnVivo: {
+    flex: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderColor: colores.borde,
+    borderRadius: 8,
+    textAlign: 'center',
+    paddingVertical: 8,
+    fontSize: 15,
+    color: colores.texto,
+  },
+  botonAgregarSet: {
+    backgroundColor: colores.navy,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   filaGanador: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18 },
   ganador: { fontWeight: '700', color: colores.texto },
   avisoDisputa: { marginTop: 14, backgroundColor: colores.infoFondo, padding: 14, borderRadius: radios.tarjeta, width: '100%' },

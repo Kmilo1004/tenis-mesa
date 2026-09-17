@@ -530,7 +530,7 @@ router.get('/torneos/:id/cuadro', async (req, res, next) => {
       where: { torneoId: torneo.id, grupoId: null, NOT: { estado: 'anulado' } },
       orderBy: [{ nivelRonda: 'asc' }, { creadoEn: 'asc' }],
       include: {
-        sets: true,
+        sets: { orderBy: { numeroSet: 'asc' }, select: { numeroSet: true, puntosJugadorA: true, puntosJugadorB: true } },
         jugadorA: { select: { id: true, nombre: true } },
         jugadorB: { select: { id: true, nombre: true } },
         ganador: { select: { id: true, nombre: true } },

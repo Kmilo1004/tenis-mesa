@@ -76,7 +76,7 @@ router.get('/reportes/torneo/:id', verificarToken, requiereRol('administrador'),
       where: { torneoId: torneo.id },
       orderBy: [{ nivelRonda: 'asc' }, { creadoEn: 'asc' }],
       include: {
-        sets: true,
+        sets: { orderBy: { numeroSet: 'asc' }, select: { numeroSet: true, puntosJugadorA: true, puntosJugadorB: true } },
         jugadorA: { select: { id: true, nombre: true } },
         jugadorB: { select: { id: true, nombre: true } },
         ganador: { select: { nombre: true } },

@@ -101,6 +101,9 @@ enum EstadoPartido {
   descartado
   en_revision
   anulado
+  desafio_pendiente
+  desafio_rechazado
+  en_juego
 }
 
 enum MotivoDisputa {
@@ -159,11 +162,15 @@ model Partido {
 }
 
 model SetPartido {
-  id             String @id @default(uuid())
-  partidoId      String @map("partido_id")
-  numeroSet      Int    @map("numero_set")
-  puntosJugadorA Int    @map("puntos_jugador_a")
-  puntosJugadorB Int    @map("puntos_jugador_b")
+  id             String  @id @default(uuid())
+  partidoId      String  @map("partido_id")
+  numeroSet      Int     @map("numero_set")
+  puntosJugadorA Int     @map("puntos_jugador_a")
+  puntosJugadorB Int     @map("puntos_jugador_b")
+  // Análisis opcional que cada jugador puede dejar sobre ESTE set en particular (p. ej. justo
+  // después de terminarlo, jugando un desafío en vivo). Es privado: cada quien solo ve el suyo.
+  analisisJugadorA String? @map("analisis_jugador_a")
+  analisisJugadorB String? @map("analisis_jugador_b")
 
   partido Partido @relation(fields: [partidoId], references: [id], onDelete: Cascade)
 
@@ -303,6 +310,7 @@ enum TipoNotificacion {
   cambio_ranking
   disputa
   torneo
+  desafio
 }
 
 // Notificaciones in-app (sección 9: sin push en v1)
