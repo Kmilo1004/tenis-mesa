@@ -189,7 +189,7 @@ function MenuNuevoPartido() {
   const estiloOpcion = (indice) => ({
     opacity: progreso,
     transform: [
-      { translateY: progreso.interpolate({ inputRange: [0, 1], outputRange: [0, -(indice + 1) * 62] }) },
+      { translateY: progreso.interpolate({ inputRange: [0, 1], outputRange: [0, -(70 + indice * 54)] }) },
       { scale: progreso.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
     ],
   });
@@ -197,16 +197,16 @@ function MenuNuevoPartido() {
   return (
     <View style={estilos.menuNuevo} pointerEvents="box-none">
       <Animated.View style={[estilos.opcionFab, estiloOpcion(1)]} pointerEvents={abierto ? 'auto' : 'none'}>
-        <Text style={estilos.opcionFabEtiqueta} numberOfLines={1}>Desafiar</Text>
-        <Pressable style={estilos.opcionFabBoton} onPress={() => ir('/partidos/desafio')}>
-          <Ionicons name="flash" size={20} color={colores.navy} />
+        <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/desafio')}>
+          <Text style={estilos.opcionFabPildoraTexto}>Desafiar</Text>
+          <Ionicons name="flash" size={17} color={colores.textoClaro} />
         </Pressable>
       </Animated.View>
 
       <Animated.View style={[estilos.opcionFab, estiloOpcion(0)]} pointerEvents={abierto ? 'auto' : 'none'}>
-        <Text style={estilos.opcionFabEtiqueta} numberOfLines={1}>Registrar partido</Text>
-        <Pressable style={estilos.opcionFabBoton} onPress={() => ir('/partidos/nuevo')}>
-          <Ionicons name="clipboard-outline" size={20} color={colores.navy} />
+        <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/nuevo')}>
+          <Text style={estilos.opcionFabPildoraTexto}>Registrar</Text>
+          <Ionicons name="create-outline" size={17} color={colores.textoClaro} />
         </Pressable>
       </Animated.View>
 
@@ -269,33 +269,22 @@ const estilos = StyleSheet.create({
   },
   opcionFab: {
     position: 'absolute',
-    bottom: 7,
-    right: 7,
+    bottom: 0,
+    right: 0,
+  },
+  opcionFabPildora: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  opcionFabEtiqueta: {
+    gap: 8,
     backgroundColor: colores.navy,
-    color: colores.textoClaro,
-    fontSize: 12,
-    fontWeight: '700',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
     borderRadius: radios.pildora,
-    overflow: 'hidden',
-  },
-  opcionFabBoton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colores.tarjeta,
-    alignItems: 'center',
-    justifyContent: 'center',
     elevation: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
+  opcionFabPildoraTexto: { color: colores.textoClaro, fontWeight: '700', fontSize: 13, letterSpacing: 0.3 },
 });
