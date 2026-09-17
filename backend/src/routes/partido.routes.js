@@ -106,8 +106,17 @@ router.get('/partidos', verificarToken, async (req, res, next) => {
 
     await expirarPendientesVencidos(prisma, filtroJugador);
 
+    // Un partido anulado (disputa que el admin resolvió como inválida) solo lo puede ver el
+    // administrador — para los jugadores, es como si nunca hubiera existido.
+    const rolesUsuario = await obtenerRoles(req.usuarioId);
+    const esAdmin = rolesUsuario.includes('administrador');
+
     const partidos = await prisma.partido.findMany({
-      where: { ...filtroJugador, ...(estado ? { estado } : {}) },
+      where: {
+        ...filtroJugador,
+        ...(estado ? { estado } : {}),
+        ...(esAdmin ? {} : { NOT: { estado: 'anulado' } }),
+      },
       include: INCLUYE_JUGADORES,
       orderBy: { fechaPartido: 'desc' },
     });
@@ -127,6 +136,14 @@ router.get('/partidos/:id', verificarToken, async (req, res, next) => {
     }
 
     partido = await expirarSiVencido(prisma, partido);
+
+    if (partido.estado === 'anulado') {
+      const rolesUsuario = await obtenerRoles(req.usuarioId);
+      if (!rolesUsuario.includes('administrador')) {
+        return res.status(404).json({ error: 'Partido no encontrado' });
+      }
+    }
+
     return res.status(200).json(partido);
   } catch (error) {
     return next(error);

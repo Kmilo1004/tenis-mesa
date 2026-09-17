@@ -524,8 +524,10 @@ router.get('/torneos/:id/cuadro', async (req, res, next) => {
       return res.status(404).json({ error: 'Torneo no encontrado' });
     }
 
+    // Un partido anulado por el admin queda oculto de la vista pública del cuadro — solo el admin
+    // lo puede consultar directamente (GET /partidos/:id con su token).
     const partidos = await prisma.partido.findMany({
-      where: { torneoId: torneo.id, grupoId: null },
+      where: { torneoId: torneo.id, grupoId: null, NOT: { estado: 'anulado' } },
       orderBy: [{ nivelRonda: 'asc' }, { creadoEn: 'asc' }],
       include: {
         sets: true,
@@ -813,7 +815,7 @@ router.get('/torneos/:id/grupos/:grupoId/partidos', async (req, res, next) => {
     }
 
     const partidos = await prisma.partido.findMany({
-      where: { grupoId: grupo.id },
+      where: { grupoId: grupo.id, NOT: { estado: 'anulado' } },
       orderBy: { creadoEn: 'asc' },
       include: INCLUYE_JUGADORES,
     });
