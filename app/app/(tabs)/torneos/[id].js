@@ -253,7 +253,11 @@ export default function DetalleTorneo() {
             }
 
             return (
-              <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}?desdeTorneo=${id}`)}>
+              <Pressable
+                key={p.id}
+                style={estilos.filaPartido}
+                onPress={() => router.push(`/partidos/${p.id}?volverA=${encodeURIComponent(`/torneos/${id}`)}`)}
+              >
                 <Text style={estilos.jugadoresPartido}>
                   {p.jugadorA?.nombre || 'Por definir'} vs {p.jugadorB?.nombre || 'Por definir'}
                 </Text>

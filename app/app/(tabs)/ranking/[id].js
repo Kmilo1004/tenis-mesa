@@ -139,7 +139,11 @@ export default function PerfilJugador() {
             const gano = p.ganadorId === usuario.id;
             const rival = p.jugadorAId === usuario.id ? p.jugadorB : p.jugadorA;
             return (
-              <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}`)}>
+              <Pressable
+                key={p.id}
+                style={estilos.filaPartido}
+                onPress={() => router.push(`/partidos/${p.id}?volverA=${encodeURIComponent(`/ranking/${id}`)}`)}
+              >
                 <View style={[estilos.puntoResultado, { backgroundColor: gano ? colores.exito : colores.error }]} />
                 <View style={{ flex: 1 }}>
                   <Text style={estilos.partidoRival}>vs {rival?.nombre || 'Rival'}</Text>

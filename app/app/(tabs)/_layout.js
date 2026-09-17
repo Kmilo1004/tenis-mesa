@@ -38,7 +38,15 @@ function reiniciarAlTocar({ navigation, route }) {
       const estado = navigation.getState();
       const indiceTab = estado.routes.findIndex((r) => r.name === route.name);
       const rutaTab = estado.routes[indiceTab];
-      if (rutaTab?.state && rutaTab.state.index > 0) {
+      const pilaTab = rutaTab?.state;
+      if (!pilaTab) return;
+
+      // No basta con mirar si ya se navegó más allá del índice 0: cuando se entra a una pantalla
+      // de esta pestaña desde AFUERA de ella (ej. tocar un partido desde "Por aprobar"), esa
+      // pantalla puede quedar como la única de la pila, en el índice 0 — y ahí el nombre de la
+      // pantalla activa, no la posición, es lo que dice si ya estamos en la pantalla principal.
+      const pantallaActual = pilaTab.routes?.[pilaTab.index ?? 0]?.name;
+      if (pantallaActual && pantallaActual !== 'index') {
         e.preventDefault();
         navigation.reset({
           ...estado,

@@ -45,7 +45,7 @@ export default function Notificaciones() {
         });
     }
     if (TIPOS_CON_PARTIDO.includes(item.tipo) && item.referenciaId) {
-      router.push(`/partidos/${item.referenciaId}`);
+      router.push(`/partidos/${item.referenciaId}?volverA=${encodeURIComponent('/notificaciones')}`);
     }
   }
 

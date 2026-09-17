@@ -130,7 +130,11 @@ function Seccion({ titulo, icono, items, render, colorBadge, fondoBadge, textoBa
         </Text>
       </View>
       {items.map((p) => (
-        <Pressable key={p.id} style={estilos.item} onPress={() => router.push(`/partidos/${p.id}`)}>
+        <Pressable
+          key={p.id}
+          style={estilos.item}
+          onPress={() => router.push(`/partidos/${p.id}?volverA=${encodeURIComponent('/aprobaciones')}`)}
+        >
           <View style={{ flex: 1 }}>{render(p)}</View>
           <View style={[estilos.badge, { backgroundColor: fondoBadge }]}>
             <Text style={[estilos.badgeTexto, { color: colorBadge }]}>{textoBadge}</Text>

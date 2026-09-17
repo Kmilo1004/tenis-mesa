@@ -263,7 +263,11 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
           {publicado && partidosPorGrupo[g.id]?.length > 0 && (
             <View style={estilos.listaPartidos}>
               {partidosPorGrupo[g.id].map((p) => (
-                <Pressable key={p.id} style={estilos.filaPartido} onPress={() => router.push(`/partidos/${p.id}?desdeTorneo=${torneoId}`)}>
+                <Pressable
+                  key={p.id}
+                  style={estilos.filaPartido}
+                  onPress={() => router.push(`/partidos/${p.id}?volverA=${encodeURIComponent(`/torneos/${torneoId}`)}`)}
+                >
                   <Text style={estilos.filaPartidoTexto}>
                     {p.jugadorA?.nombre || 'Por definir'} vs {p.jugadorB?.nombre || 'Por definir'}
                   </Text>

@@ -25,7 +25,7 @@ const ETIQUETAS_ESTADO = {
 };
 
 export default function DetallePartido() {
-  const { id, desdeTorneo } = useLocalSearchParams();
+  const { id, volverA } = useLocalSearchParams();
   const { usuario, token } = useAuth();
 
   const [partido, setPartido] = useState(null);
@@ -96,11 +96,17 @@ export default function DetallePartido() {
     }
   }
 
-  const encabezadoVolverATorneo = desdeTorneo && (
+  // Cuando se entra a un partido desde una pantalla que no es "Partidos" (el detalle de un
+  // torneo, "Por aprobar", el perfil de un jugador en el ranking, un aviso...), Expo Router
+  // cambia la pestaña activa y este partido queda como la única pantalla en la pila de esa
+  // pestaña. Ahí ni el botón de volver por defecto ni volver a tocar la pestaña llevan a donde
+  // el usuario realmente vino — así que cada uno de esos orígenes manda su ruta en `volverA` y
+  // este botón la reemplaza explícitamente en vez de confiar en el "atrás" normal.
+  const encabezadoVolverA = volverA && (
     <Stack.Screen
       options={{
         headerLeft: () => (
-          <Pressable onPress={() => router.replace(`/torneos/${desdeTorneo}`)} hitSlop={10} style={{ paddingRight: 12 }}>
+          <Pressable onPress={() => router.replace(volverA)} hitSlop={10} style={{ paddingRight: 12 }}>
             <Ionicons name="arrow-back" size={22} color={colores.textoClaro} />
           </Pressable>
         ),
@@ -111,7 +117,7 @@ export default function DetallePartido() {
   if (cargando || !partido || !usuario) {
     return (
       <View style={estilos.centrado}>
-        {encabezadoVolverATorneo}
+        {encabezadoVolverA}
         <ActivityIndicator color={colores.navy} />
       </View>
     );
@@ -311,7 +317,7 @@ export default function DetallePartido() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={estilos.contenedor}>
-        {encabezadoVolverATorneo}
+        {encabezadoVolverA}
       <View style={estilos.tarjetaPrincipal}>
         <View style={[estilos.badge, { backgroundColor: etiquetaEstado.fondo, alignSelf: 'center' }]}>
           <Text style={[estilos.badgeTexto, { color: etiquetaEstado.color }]}>{etiquetaEstado.texto}</Text>
