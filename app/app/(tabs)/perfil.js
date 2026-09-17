@@ -89,14 +89,9 @@ export default function Perfil() {
 
   const esAdmin = usuario.roles?.some((r) => r.rol === 'administrador');
   const deltaRanking = historialElo.length >= 2 ? historialElo[historialElo.length - 1].elo - historialElo[historialElo.length - 2].elo : 0;
-  // Los últimos 5 resultados (de más antiguo a más reciente) a partir de los partidos recientes,
+  // Los últimos resultados (de más antiguo a más reciente) a partir de los partidos recientes,
   // que ya vienen ordenados del más nuevo al más viejo.
-  const formaReciente = estadisticas
-    ? [...estadisticas.partidosRecientes]
-        .slice(0, 5)
-        .reverse()
-        .map((p) => (p.ganadorId === usuario.id ? 'V' : 'D'))
-    : [];
+  const ultimosResultados = estadisticas ? [...estadisticas.partidosRecientes].reverse() : [];
 
   return (
     <ScrollView style={estilos.contenedor} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -194,25 +189,37 @@ export default function Perfil() {
               </View>
             </View>
 
-            {formaReciente.length > 0 && (
+            {ultimosResultados.length > 0 && (
               <View style={estilos.tarjeta}>
-                <Text style={estilos.tarjetaTitulo}>Forma reciente</Text>
-                <View style={estilos.formaFila}>
-                  {formaReciente.map((resultado, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        estilos.formaChip,
-                        { backgroundColor: resultado === 'V' ? colores.exitoFondo : colores.errorFondo },
-                        i === formaReciente.length - 1 && [estilos.formaChipActual, { borderColor: resultado === 'V' ? colores.exito : colores.error }],
-                      ]}
-                    >
-                      <Text style={[estilos.formaChipTexto, { color: resultado === 'V' ? colores.exito : colores.error }]}>
-                        {resultado}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
+                <Text style={estilos.tarjetaTitulo}>Últimos resultados</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.formaFila}>
+                  {ultimosResultados.map((p, i) => {
+                    const resultado = p.ganadorId === usuario.id ? 'V' : 'D';
+                    const rival = p.jugadorAId === usuario.id ? p.jugadorB : p.jugadorA;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        style={[
+                          estilos.formaChip,
+                          { backgroundColor: resultado === 'V' ? colores.exitoFondo : colores.errorFondo },
+                          i === ultimosResultados.length - 1 && [
+                            estilos.formaChipActual,
+                            { borderColor: resultado === 'V' ? colores.exito : colores.error },
+                          ],
+                        ]}
+                        onPress={() => router.push(`/partidos/${p.id}?volverA=${encodeURIComponent('/perfil')}`)}
+                        hitSlop={4}
+                      >
+                        <Text style={[estilos.formaChipTexto, { color: resultado === 'V' ? colores.exito : colores.error }]}>
+                          {resultado}
+                        </Text>
+                        <Text style={estilos.formaChipRival} numberOfLines={1}>
+                          {rival?.nombre?.split(' ')[0] || '—'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               </View>
             )}
 
@@ -333,7 +340,7 @@ const estilos = StyleSheet.create({
     borderColor: colores.navy,
   },
   statsVacio: { color: colores.textoSecundario, fontSize: 13 },
-  filaStats: { flexDirection: 'row', gap: 10 },
+  filaStats: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   subTarjetaStats: { flex: 1, marginBottom: 0 },
   statsRecordValor: { fontSize: 22, fontWeight: '800', color: colores.texto },
   statsRecordSub: { fontSize: 11, color: colores.textoSecundario, marginTop: 2, marginBottom: 10 },
@@ -341,10 +348,11 @@ const estilos = StyleSheet.create({
   badgeRachaTexto: { fontSize: 16, fontWeight: '800' },
   mejorRachaTexto: { fontSize: 10.5, color: colores.textoSecundario, marginTop: 9 },
   mejorRachaValor: { color: colores.texto, fontWeight: '700' },
-  formaFila: { flexDirection: 'row', gap: 7 },
-  formaChip: { flex: 1, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  formaFila: { flexDirection: 'row', gap: 8, paddingRight: 2 },
+  formaChip: { width: 46, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center', gap: 1 },
   formaChipActual: { borderWidth: 2 },
   formaChipTexto: { fontWeight: '800', fontSize: 13 },
+  formaChipRival: { fontSize: 8.5, fontWeight: '600', color: colores.textoSecundario, maxWidth: 40 },
   filaRival: { paddingVertical: 9 },
   filaConDivisor: { borderTopWidth: 1, borderTopColor: colores.borde },
   rivalCabecera: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 7 },
