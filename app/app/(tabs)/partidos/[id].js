@@ -72,6 +72,26 @@ export default function DetallePartido() {
     }, [cargar]),
   );
 
+  // Mientras el partido está "vivo" (esperando que acepten un desafío, jugándose en vivo, o recién
+  // terminado y esperando que el rival confirme el resultado), el otro jugador puede estar mirando
+  // esta misma pantalla al mismo tiempo — así que se refresca solo cada pocos segundos para que
+  // cada quien vea los cambios del otro sin tener que recargar la página a mano.
+  useEffect(() => {
+    if (!partido || !usuario) return;
+    const esParticipanteAhora = partido.jugadorA?.id === usuario.id || partido.jugadorB?.id === usuario.id;
+    const estaVivo = ['desafio_pendiente', 'en_juego', 'pendiente'].includes(partido.estado);
+    if (!esParticipanteAhora || !estaVivo) return;
+
+    const intervalo = setInterval(() => {
+      apiFetch(`/partidos/${id}`, { token })
+        .then(setPartido)
+        .catch(() => {
+          // sondeo en segundo plano: si una vuelta falla, simplemente se reintenta en la siguiente
+        });
+    }, 4000);
+    return () => clearInterval(intervalo);
+  }, [partido?.estado, partido?.jugadorA?.id, partido?.jugadorB?.id, usuario, id, token]);
+
   // Observación privada: solo se carga cuando el partido ya está confirmado y quien mira es uno
   // de los dos jugadores (ni el rival ni un admin ven esta nota).
   useEffect(() => {
@@ -153,7 +173,10 @@ export default function DetallePartido() {
   const puedeRescatar = esAdmin && partido.estado === 'descartado';
   const puedoResponderDesafio = partido.estado === 'desafio_pendiente' && partido.jugadorBId === usuario.id;
   const esperandoRespuestaDesafio = partido.estado === 'desafio_pendiente' && partido.jugadorAId === usuario.id;
-  const puedoAgregarSetEnVivo = partido.estado === 'en_juego' && esParticipante;
+  const setPropuesto = partido.setPropuesto;
+  const soyQuienPropusoSet = setPropuesto && setPropuesto.propuestoPor === usuario.id;
+  const puedoResponderSetPropuesto = Boolean(setPropuesto) && esParticipante && !soyQuienPropusoSet;
+  const puedoAgregarSetEnVivo = partido.estado === 'en_juego' && esParticipante && !setPropuesto;
   const listoSetEnVivo = setEnVivo.puntosJugadorA !== '' && setEnVivo.puntosJugadorB !== '';
   const etiquetaEstado = ETIQUETAS_ESTADO[partido.estado] || ETIQUETAS_ESTADO.por_definir;
 
@@ -360,6 +383,32 @@ export default function DetallePartido() {
     }
   }
 
+  async function confirmarSetPropuesto() {
+    setEnviando(true);
+    setError(null);
+    try {
+      await apiFetch(`/partidos/${id}/sets/confirmar`, { method: 'POST', token });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function rechazarSetPropuesto() {
+    setEnviando(true);
+    setError(null);
+    try {
+      await apiFetch(`/partidos/${id}/sets/rechazar`, { method: 'POST', token });
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   function abrirAnalisis(numeroSet, textoActual) {
     setAnalisisEditando(numeroSet);
     setAnalisisBorrador(textoActual || '');
@@ -464,15 +513,17 @@ export default function DetallePartido() {
                           </View>
                         </View>
                       ) : s.analisisPropio ? (
-                        <Pressable style={estilos.filaAnalisisTexto} onPress={() => abrirAnalisis(s.numeroSet, s.analisisPropio)}>
+                        <Pressable style={estilos.tarjetaAnalisis} onPress={() => abrirAnalisis(s.numeroSet, s.analisisPropio)}>
+                          <Ionicons name="chatbox-ellipses-outline" size={15} color={colores.acento} style={{ marginTop: 1 }} />
                           <Text style={estilos.analisisTexto} numberOfLines={3}>
                             {s.analisisPropio}
                           </Text>
                           <Ionicons name="pencil-outline" size={13} color={colores.textoSecundario} />
                         </Pressable>
                       ) : (
-                        <Pressable onPress={() => abrirAnalisis(s.numeroSet, '')}>
-                          <Text style={estilos.agregarAnalisis}>+ Agregar análisis de este set</Text>
+                        <Pressable style={estilos.chipAgregarAnalisis} onPress={() => abrirAnalisis(s.numeroSet, '')}>
+                          <Ionicons name="add" size={13} color={colores.textoSecundario} />
+                          <Text style={estilos.chipAgregarAnalisisTexto}>Análisis de este set</Text>
                         </Pressable>
                       ))}
                   </View>
@@ -511,6 +562,32 @@ export default function DetallePartido() {
             >
               {enviando ? <ActivityIndicator color={colores.textoClaro} size="small" /> : <Ionicons name="add" size={18} color={colores.textoClaro} />}
             </Pressable>
+          </View>
+        )}
+
+        {setPropuesto && (
+          <View style={estilos.tarjetaSetPropuesto}>
+            <View style={estilos.filaSetPropuesto}>
+              <Ionicons name="time-outline" size={15} color={colores.advertencia} />
+              <Text style={estilos.setPropuestoTexto}>
+                Set {setPropuesto.numeroSet}: <Text style={estilos.setPropuestoMarcador}>{setPropuesto.puntosJugadorA}-{setPropuesto.puntosJugadorB}</Text>
+              </Text>
+            </View>
+            {soyQuienPropusoSet ? (
+              <Text style={estilos.avisoTextoIzq}>Esperando que {rival?.nombre || 'tu rival'} lo confirme.</Text>
+            ) : (
+              <>
+                <Text style={estilos.avisoTextoIzq}>{rival?.nombre || 'Tu rival'} cargó este resultado. ¿Coincide con lo que jugaron?</Text>
+                <View style={estilos.filaBotonesSetPropuesto}>
+                  <Pressable style={estilos.botonSecundario} onPress={rechazarSetPropuesto} disabled={enviando}>
+                    <Text style={estilos.botonSecundarioTexto}>No, corregir</Text>
+                  </Pressable>
+                  <Pressable style={[estilos.boton, { flex: 1 }]} onPress={confirmarSetPropuesto} disabled={enviando}>
+                    {enviando ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Confirmar set</Text>}
+                  </Pressable>
+                </View>
+              </>
+            )}
           </View>
         )}
 
@@ -830,16 +907,32 @@ const estilos = StyleSheet.create({
   setPuntos: { fontSize: 17, fontWeight: '700', color: colores.texto, width: 20, textAlign: 'center' },
   setPuntosGanado: { color: colores.exito },
   setGuion: { color: colores.textoSecundario },
-  filaAnalisisTexto: {
+  tarjetaAnalisis: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingTop: 6,
+    gap: 8,
+    backgroundColor: colores.acentoFondo,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 2,
   },
-  analisisTexto: { flex: 1, fontSize: 12, color: colores.textoSecundario, fontStyle: 'italic' },
-  agregarAnalisis: { fontSize: 12, color: colores.navy, fontWeight: '600', paddingHorizontal: 10, paddingTop: 6 },
-  analisisEditor: { paddingHorizontal: 10, paddingTop: 8 },
+  analisisTexto: { flex: 1, fontSize: 12.5, color: colores.texto, lineHeight: 17 },
+  chipAgregarAnalisis: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colores.borde,
+    borderStyle: 'dashed',
+    borderRadius: radios.pildora,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 2,
+  },
+  chipAgregarAnalisisTexto: { fontSize: 11.5, color: colores.textoSecundario, fontWeight: '600' },
+  analisisEditor: { paddingHorizontal: 2, paddingTop: 6 },
   textareaAnalisis: {
     borderWidth: 1,
     borderColor: colores.borde,
@@ -872,6 +965,17 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  tarjetaSetPropuesto: {
+    width: '100%',
+    backgroundColor: colores.advertenciaFondo,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+  },
+  filaSetPropuesto: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  setPropuestoTexto: { fontSize: 13, fontWeight: '600', color: colores.texto },
+  setPropuestoMarcador: { fontWeight: '800' },
+  filaBotonesSetPropuesto: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
   filaGanador: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18 },
   ganador: { fontWeight: '700', color: colores.texto },
   avisoDisputa: { marginTop: 14, backgroundColor: colores.infoFondo, padding: 14, borderRadius: radios.tarjeta, width: '100%' },

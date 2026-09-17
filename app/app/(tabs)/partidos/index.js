@@ -161,19 +161,20 @@ export default function ListaPartidos() {
         />
       )}
 
-      <Link href="/partidos/desafio" asChild>
-        <Pressable style={estilos.fabSecundario}>
-          <Ionicons name="flash" size={16} color={colores.navy} />
-          <Text style={estilos.fabSecundarioTexto}>Desafiar</Text>
-        </Pressable>
-      </Link>
+      <View style={estilos.filaFabs}>
+        <Link href="/partidos/desafio" asChild>
+          <Pressable style={estilos.fabSecundario}>
+            <Ionicons name="flash" size={16} color={colores.navy} />
+            <Text style={estilos.fabSecundarioTexto}>Desafiar</Text>
+          </Pressable>
+        </Link>
 
-      <Link href="/partidos/nuevo" asChild>
-        <Pressable style={estilos.fab}>
-          <Ionicons name="add" size={18} color={colores.textoClaro} />
-          <Text style={estilos.fabTexto}>Registrar partido</Text>
-        </Pressable>
-      </Link>
+        <Link href="/partidos/nuevo" asChild>
+          <Pressable style={estilos.fab}>
+            <Text style={estilos.fabTexto}>Registrar partido</Text>
+          </Pressable>
+        </Link>
+      </View>
     </View>
   );
 }
@@ -207,10 +208,15 @@ const estilos = StyleSheet.create({
   marcadorSets: { fontSize: 20, fontWeight: '800', color: colores.texto, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radios.pildora },
   badgeTexto: { fontSize: 11, fontWeight: '700' },
-  fab: {
+  filaFabs: {
     position: 'absolute',
     bottom: 24,
     alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  fab: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -222,16 +228,13 @@ const estilos = StyleSheet.create({
   },
   fabTexto: { color: colores.textoClaro, fontWeight: '700' },
   fabSecundario: {
-    position: 'absolute',
-    bottom: 78,
-    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: colores.tarjeta,
     borderWidth: 1,
     borderColor: colores.navy,
-    paddingVertical: 10,
+    paddingVertical: 13,
     paddingHorizontal: 18,
     borderRadius: radios.pildora,
     elevation: 3,

@@ -132,6 +132,10 @@ model Partido {
   estado                  EstadoPartido @default(pendiente)
   motivoDisputa           MotivoDisputa? @map("motivo_disputa")
   marcadorPropuesto       Json?         @map("marcador_propuesto")
+  // El set que alguno de los dos jugadores acaba de cargar en un desafío en vivo, a la espera de
+  // que el otro lo confirme (o lo rechace) antes de que cuente y se pueda pasar al siguiente set.
+  // { numeroSet, puntosJugadorA, puntosJugadorB, propuestoPor }.
+  setPropuesto            Json?         @map("set_propuesto")
   comentarioDisputa       String?       @map("comentario_disputa")
   fechaLimiteConfirmacion DateTime?     @map("fecha_limite_confirmacion")
   fechaPartido            DateTime      @map("fecha_partido")

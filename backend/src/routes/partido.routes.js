@@ -266,11 +266,9 @@ router.post('/partidos/:id/desafio/responder', verificarToken, async (req, res, 
   }
 });
 
-// POST /partidos/{id}/sets — agrega el resultado de un set a un desafío en vivo, a medida que van
-// terminando. Cualquiera de los dos jugadores puede cargarlo (se asume que juegan juntos en el
-// momento); cuando el marcador acumulado ya define un ganador (mejor de 5 o de 7), el partido pasa
-// solo a "pendiente" para que el rival de quien registró el desafío lo confirme, igual que un
-// partido casual cargado de una sola vez.
+// POST /partidos/{id}/sets — propone el resultado de un set de un desafío en vivo, a medida que
+// van terminando. Cualquiera de los dos jugadores puede proponerlo, pero el otro debe confirmarlo
+// (POST .../sets/confirmar) antes de que cuente y se pueda proponer el siguiente set.
 router.post('/partidos/:id/sets', verificarToken, async (req, res, next) => {
   try {
     const { puntosJugadorA, puntosJugadorB } = req.body;
@@ -289,28 +287,66 @@ router.post('/partidos/:id/sets', verificarToken, async (req, res, next) => {
     if (partido.estado !== 'en_juego') {
       return res.status(409).json({ error: `Este partido no está en juego (estado actual: ${partido.estado})` });
     }
+    if (partido.setPropuesto) {
+      return res.status(409).json({ error: 'Ya hay un set esperando confirmación del rival' });
+    }
     if (partido.sets.length >= 7) {
       return res.status(409).json({ error: 'Este partido ya tiene el máximo de 7 sets' });
     }
 
-    await prisma.setPartido.create({
+    const partidoActualizado = await prisma.partido.update({
+      where: { id: partido.id },
       data: {
-        partidoId: partido.id,
-        numeroSet: partido.sets.length + 1,
-        puntosJugadorA: Number(puntosJugadorA),
-        puntosJugadorB: Number(puntosJugadorB),
+        setPropuesto: {
+          numeroSet: partido.sets.length + 1,
+          puntosJugadorA: Number(puntosJugadorA),
+          puntosJugadorB: Number(puntosJugadorB),
+          propuestoPor: req.usuarioId,
+        },
       },
+      include: INCLUYE_JUGADORES,
     });
 
-    const setsHastaAhora = [...partido.sets, { puntosJugadorA: Number(puntosJugadorA), puntosJugadorB: Number(puntosJugadorB) }].map(
-      (s) => ({ puntosJugadorA: s.puntosJugadorA, puntosJugadorB: s.puntosJugadorB }),
-    );
+    return res.status(201).json(partidoActualizado);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /partidos/{id}/sets/confirmar — el rival de quien propuso el set lo confirma y recién ahí
+// se crea de verdad. Si con eso ya se define un ganador (mejor de 5 o de 7), el partido pasa a
+// "pendiente" para la confirmación final del resultado completo, igual que un partido casual
+// cargado de una sola vez.
+router.post('/partidos/:id/sets/confirmar', verificarToken, async (req, res, next) => {
+  try {
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id }, include: { sets: true } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (!partido.setPropuesto) {
+      return res.status(409).json({ error: 'No hay ningún set esperando confirmación' });
+    }
+    if (partido.jugadorAId !== req.usuarioId && partido.jugadorBId !== req.usuarioId) {
+      return res.status(403).json({ error: 'Solo los jugadores del desafío pueden confirmar sets' });
+    }
+    if (req.usuarioId === partido.setPropuesto.propuestoPor) {
+      return res.status(403).json({ error: 'Debe confirmarlo el rival, no quien lo propuso' });
+    }
+
+    const { numeroSet, puntosJugadorA, puntosJugadorB } = partido.setPropuesto;
+    await prisma.setPartido.create({ data: { partidoId: partido.id, numeroSet, puntosJugadorA, puntosJugadorB } });
+    await prisma.partido.update({ where: { id: partido.id }, data: { setPropuesto: null } });
+
+    const setsHastaAhora = [...partido.sets, { puntosJugadorA, puntosJugadorB }].map((s) => ({
+      puntosJugadorA: s.puntosJugadorA,
+      puntosJugadorB: s.puntosJugadorB,
+    }));
     const resultado = validarMarcador(setsHastaAhora);
 
     if (!resultado.valido) {
-      // Todavía no se define el partido con los sets jugados hasta ahora — sigue en juego.
+      // Todavía no se define el partido con los sets confirmados hasta ahora — sigue en juego.
       const partidoEnCurso = await prisma.partido.findUnique({ where: { id: partido.id }, include: INCLUYE_JUGADORES });
-      return res.status(201).json(partidoEnCurso);
+      return res.status(200).json(partidoEnCurso);
     }
 
     const ganadorId = resultado.ganador === 'A' ? partido.jugadorAId : partido.jugadorBId;
@@ -338,7 +374,38 @@ router.post('/partidos/:id/sets', verificarToken, async (req, res, next) => {
       referenciaId: partido.id,
     });
 
-    return res.status(201).json(partidoTerminado);
+    return res.status(200).json(partidoTerminado);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /partidos/{id}/sets/rechazar — el rival de quien propuso el set lo rechaza (p. ej. se
+// equivocó al escribir el marcador). Se descarta sin dejar rastro y cualquiera puede proponer de
+// nuevo el resultado de ese set.
+router.post('/partidos/:id/sets/rechazar', verificarToken, async (req, res, next) => {
+  try {
+    const partido = await prisma.partido.findUnique({ where: { id: req.params.id } });
+    if (!partido) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (!partido.setPropuesto) {
+      return res.status(409).json({ error: 'No hay ningún set esperando confirmación' });
+    }
+    if (partido.jugadorAId !== req.usuarioId && partido.jugadorBId !== req.usuarioId) {
+      return res.status(403).json({ error: 'Solo los jugadores del desafío pueden rechazar sets' });
+    }
+    if (req.usuarioId === partido.setPropuesto.propuestoPor) {
+      return res.status(403).json({ error: 'Debe rechazarlo el rival, no quien lo propuso' });
+    }
+
+    const partidoActualizado = await prisma.partido.update({
+      where: { id: partido.id },
+      data: { setPropuesto: null },
+      include: INCLUYE_JUGADORES,
+    });
+
+    return res.status(200).json(partidoActualizado);
   } catch (error) {
     return next(error);
   }
