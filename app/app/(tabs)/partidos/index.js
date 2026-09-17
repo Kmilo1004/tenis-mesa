@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { Link, router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { Animated, View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
@@ -161,20 +161,60 @@ export default function ListaPartidos() {
         />
       )}
 
-      <View style={estilos.filaFabs}>
-        <Link href="/partidos/desafio" asChild>
-          <Pressable style={estilos.fabSecundario}>
-            <Ionicons name="flash" size={16} color={colores.navy} />
-            <Text style={estilos.fabSecundarioTexto}>Desafiar</Text>
-          </Pressable>
-        </Link>
+      <MenuNuevoPartido />
+    </View>
+  );
+}
 
-        <Link href="/partidos/nuevo" asChild>
-          <Pressable style={estilos.fab}>
-            <Text style={estilos.fabTexto}>Registrar partido</Text>
-          </Pressable>
-        </Link>
-      </View>
+// Un solo botón circular abajo a la derecha que, al tocarlo, despliega las dos formas de
+// registrar un partido (con una animación sutil) en vez de mostrar siempre los dos botones.
+function MenuNuevoPartido() {
+  const [abierto, setAbierto] = useState(false);
+  const progreso = useRef(new Animated.Value(0)).current;
+
+  function alternar() {
+    const destino = abierto ? 0 : 1;
+    setAbierto(!abierto);
+    Animated.spring(progreso, { toValue: destino, useNativeDriver: true, speed: 18, bounciness: 8 }).start();
+  }
+
+  function ir(ruta) {
+    setAbierto(false);
+    Animated.timing(progreso, { toValue: 0, duration: 120, useNativeDriver: true }).start();
+    router.push(ruta);
+  }
+
+  const rotacion = progreso.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
+
+  const estiloOpcion = (indice) => ({
+    opacity: progreso,
+    transform: [
+      { translateY: progreso.interpolate({ inputRange: [0, 1], outputRange: [0, -(indice + 1) * 62] }) },
+      { scale: progreso.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
+    ],
+  });
+
+  return (
+    <View style={estilos.menuNuevo} pointerEvents="box-none">
+      <Animated.View style={[estilos.opcionFab, estiloOpcion(1)]} pointerEvents={abierto ? 'auto' : 'none'}>
+        <Text style={estilos.opcionFabEtiqueta} numberOfLines={1}>Desafiar</Text>
+        <Pressable style={estilos.opcionFabBoton} onPress={() => ir('/partidos/desafio')}>
+          <Ionicons name="flash" size={20} color={colores.navy} />
+        </Pressable>
+      </Animated.View>
+
+      <Animated.View style={[estilos.opcionFab, estiloOpcion(0)]} pointerEvents={abierto ? 'auto' : 'none'}>
+        <Text style={estilos.opcionFabEtiqueta} numberOfLines={1}>Registrar partido</Text>
+        <Pressable style={estilos.opcionFabBoton} onPress={() => ir('/partidos/nuevo')}>
+          <Ionicons name="clipboard-outline" size={20} color={colores.navy} />
+        </Pressable>
+      </Animated.View>
+
+      <Pressable style={estilos.fabPrincipal} onPress={alternar}>
+        <Animated.View style={{ transform: [{ rotate: rotacion }] }}>
+          <Ionicons name="add" size={30} color={colores.textoClaro} />
+        </Animated.View>
+      </Pressable>
     </View>
   );
 }
@@ -208,36 +248,54 @@ const estilos = StyleSheet.create({
   marcadorSets: { fontSize: 20, fontWeight: '800', color: colores.texto, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radios.pildora },
   badgeTexto: { fontSize: 11, fontWeight: '700' },
-  filaFabs: {
+  menuNuevo: {
     position: 'absolute',
     bottom: 24,
-    alignSelf: 'center',
+    right: 20,
+    alignItems: 'flex-end',
+  },
+  fabPrincipal: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colores.navy,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  opcionFab: {
+    position: 'absolute',
+    bottom: 7,
+    right: 7,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  fab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  opcionFabEtiqueta: {
     backgroundColor: colores.navy,
-    paddingVertical: 14,
-    paddingHorizontal: 22,
+    color: colores.textoClaro,
+    fontSize: 12,
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: radios.pildora,
-    elevation: 3,
+    overflow: 'hidden',
   },
-  fabTexto: { color: colores.textoClaro, fontWeight: '700' },
-  fabSecundario: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  opcionFabBoton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colores.tarjeta,
-    borderWidth: 1,
-    borderColor: colores.navy,
-    paddingVertical: 13,
-    paddingHorizontal: 18,
-    borderRadius: radios.pildora,
-    elevation: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  fabSecundarioTexto: { color: colores.navy, fontWeight: '700', fontSize: 13 },
 });
