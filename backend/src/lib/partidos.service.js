@@ -5,6 +5,7 @@ const { registrarAuditoria } = require('./auditoria.service');
 const { notificarPartidoProximo, notificarCambioRanking } = require('./notificaciones.service');
 
 const DOS_DIAS_MS = 2 * 24 * 60 * 60 * 1000;
+const VEINTICUATRO_HORAS_MS = 24 * 60 * 60 * 1000;
 
 const INCLUYE_JUGADORES = {
   sets: { orderBy: { numeroSet: 'asc' }, select: { id: true, numeroSet: true, puntosJugadorA: true, puntosJugadorB: true } },
@@ -31,6 +32,20 @@ async function expirarPendientesVencidos(prisma, where = {}) {
     where: { ...where, estado: 'pendiente', fechaLimiteConfirmacion: { lt: new Date() } },
     data: { estado: 'descartado' },
   });
+}
+
+// Un desafío que el rival no acepta ni rechaza en 24h se borra directamente — a diferencia de un
+// "pendiente" vencido, acá nunca llegó a jugarse ni existió un resultado, así que no hay nada que
+// conservar como historial. Se usa tanto en lote (antes de listar) como puntual (antes de mostrar
+// el detalle de un desafío específico, o antes de dejar aceptarlo/rechazarlo).
+async function expirarDesafiosVencidos(prisma, where = {}) {
+  await prisma.partido.deleteMany({
+    where: { ...where, estado: 'desafio_pendiente', fechaLimiteConfirmacion: { lt: new Date() } },
+  });
+}
+
+function desafioVencido(partido) {
+  return partido.estado === 'desafio_pendiente' && partido.fechaLimiteConfirmacion && partido.fechaLimiteConfirmacion < new Date();
 }
 
 // Aplica el resultado de un partido al ranking que le corresponde (oficial o no oficial, según
@@ -212,8 +227,11 @@ async function editarOAnularResultado(prisma, partido, { sets, anular, motivo, a
 
 module.exports = {
   DOS_DIAS_MS,
+  VEINTICUATRO_HORAS_MS,
   expirarSiVencido,
   expirarPendientesVencidos,
+  expirarDesafiosVencidos,
+  desafioVencido,
   confirmarResultado,
   promoverAOficial,
   editarOAnularResultado,

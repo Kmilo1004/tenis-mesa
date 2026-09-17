@@ -37,7 +37,7 @@ export default function NuevoDesafio() {
       </View>
 
       <Text style={estilos.explicacion}>
-        Tu rival recibe una notificación y debe aceptar el desafío antes de que puedan empezar a cargar los sets. Una vez
+        Tu rival recibe una notificación y tiene 24 horas para aceptar el desafío antes de que se elimine solo. Una vez
         acepte, cualquiera de los dos puede ir agregando el resultado de cada set a medida que termine, y dejar un análisis
         opcional (privado) sobre cada uno.
       </Text>

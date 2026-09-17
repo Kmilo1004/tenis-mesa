@@ -3,8 +3,11 @@ const prisma = require('../lib/prisma');
 const { validarMarcador, limpiarSets, puntosSetValidos } = require('../lib/marcador');
 const {
   DOS_DIAS_MS,
+  VEINTICUATRO_HORAS_MS,
   expirarSiVencido,
   expirarPendientesVencidos,
+  expirarDesafiosVencidos,
+  desafioVencido,
   confirmarResultado,
   promoverAOficial,
   editarOAnularResultado,
@@ -105,6 +108,7 @@ router.get('/partidos', verificarToken, async (req, res, next) => {
     const filtroJugador = usuarioId ? { OR: [{ jugadorAId: usuarioId }, { jugadorBId: usuarioId }] } : {};
 
     await expirarPendientesVencidos(prisma, filtroJugador);
+    await expirarDesafiosVencidos(prisma, filtroJugador);
 
     // Un partido anulado (disputa que el admin resolvió como inválida) solo lo puede ver el
     // administrador — para los jugadores, es como si nunca hubiera existido.
@@ -133,6 +137,11 @@ router.get('/partidos/:id', verificarToken, async (req, res, next) => {
     let partido = await prisma.partido.findUnique({ where: { id: req.params.id }, include: INCLUYE_JUGADORES });
     if (!partido) {
       return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+
+    if (desafioVencido(partido)) {
+      await prisma.partido.delete({ where: { id: partido.id } });
+      return res.status(404).json({ error: 'Este desafío venció sin respuesta y fue eliminado' });
     }
 
     partido = await expirarSiVencido(prisma, partido);
@@ -194,6 +203,7 @@ router.post('/partidos/desafios', verificarToken, async (req, res, next) => {
         tipoPartido: 'casual',
         afectaRanking: 'no_oficial',
         estado: 'desafio_pendiente',
+        fechaLimiteConfirmacion: new Date(Date.now() + VEINTICUATRO_HORAS_MS),
         fechaPartido: new Date(),
         registradoPor: req.usuarioId,
       },
@@ -224,6 +234,10 @@ router.post('/partidos/:id/desafio/responder', verificarToken, async (req, res, 
     const partido = await prisma.partido.findUnique({ where: { id: req.params.id } });
     if (!partido) {
       return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+    if (desafioVencido(partido)) {
+      await prisma.partido.delete({ where: { id: partido.id } });
+      return res.status(404).json({ error: 'Este desafío venció sin respuesta y fue eliminado' });
     }
     if (partido.estado !== 'desafio_pendiente') {
       return res.status(409).json({ error: `Este desafío ya no está pendiente de respuesta (estado actual: ${partido.estado})` });
