@@ -198,14 +198,14 @@ function MenuNuevoPartido() {
     <View style={estilos.menuNuevo} pointerEvents="box-none">
       <Animated.View style={[estilos.opcionFab, estiloOpcion(1)]} pointerEvents={abierto ? 'auto' : 'none'}>
         <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/desafio')}>
-          <Text style={estilos.opcionFabPildoraTexto}>Desafiar</Text>
+          <Text style={estilos.opcionFabPildoraTexto} numberOfLines={1}>Desafiar</Text>
           <Ionicons name="flash" size={17} color={colores.textoClaro} />
         </Pressable>
       </Animated.View>
 
       <Animated.View style={[estilos.opcionFab, estiloOpcion(0)]} pointerEvents={abierto ? 'auto' : 'none'}>
         <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/nuevo')}>
-          <Text style={estilos.opcionFabPildoraTexto}>Registrar</Text>
+          <Text style={estilos.opcionFabPildoraTexto} numberOfLines={1}>Registrar</Text>
           <Ionicons name="create-outline" size={17} color={colores.textoClaro} />
         </Pressable>
       </Animated.View>
@@ -274,6 +274,7 @@ const estilos = StyleSheet.create({
   },
   opcionFabPildora: {
     flexDirection: 'row',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     gap: 8,
     backgroundColor: colores.navy,
