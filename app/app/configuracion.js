@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Switch, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Switch, Linking, Modal } from 'react-native';
 import { router, Stack } from 'expo-router';
 import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -26,6 +26,7 @@ export default function Configuracion() {
   const [avatarEstilo, setAvatarEstilo] = useState(usuario?.avatarEstilo || ESTILO_AVATAR_POR_DEFECTO);
   const [guardandoAvatar, setGuardandoAvatar] = useState(false);
   const [errorAvatar, setErrorAvatar] = useState(null);
+  const [mostrarSelectorEstilo, setMostrarSelectorEstilo] = useState(false);
 
   const [pushActivado, setPushActivado] = useState(true);
   const [cambiandoPush, setCambiandoPush] = useState(false);
@@ -96,7 +97,7 @@ export default function Configuracion() {
     }
   }
 
-  function probarOtroAvatar() {
+  function aleatorizarAvatar() {
     setErrorAvatar(null);
     setAvatarSeed(Math.random().toString(36).slice(2, 10));
     setAvatarEstilo(ESTILOS_AVATAR[Math.floor(Math.random() * ESTILOS_AVATAR.length)].valor);
@@ -189,10 +190,16 @@ export default function Configuracion() {
         <Avatar avatarSeed={avatarSeed} avatarEstilo={avatarEstilo} nombre={usuario.nombre} tamano={84} />
         <View style={estilos.avatarBotones}>
           {errorAvatar && <Text style={estilos.error}>{errorAvatar}</Text>}
-          <Pressable style={estilos.botonSecundario} onPress={probarOtroAvatar}>
-            <Ionicons name="shuffle-outline" size={16} color={colores.navy} />
-            <Text style={estilos.botonSecundarioTexto}>Probar otro</Text>
-          </Pressable>
+          <View style={estilos.avatarBotonesFila}>
+            <Pressable style={[estilos.botonSecundario, { flex: 1 }]} onPress={aleatorizarAvatar}>
+              <Ionicons name="shuffle-outline" size={16} color={colores.navy} />
+              <Text style={estilos.botonSecundarioTexto}>Aleatorio</Text>
+            </Pressable>
+            <Pressable style={[estilos.botonSecundario, { flex: 1 }]} onPress={() => setMostrarSelectorEstilo(true)}>
+              <Ionicons name="hand-left-outline" size={16} color={colores.navy} />
+              <Text style={estilos.botonSecundarioTexto}>Elegir</Text>
+            </Pressable>
+          </View>
           <Pressable
             style={[estilos.boton, { marginTop: 0 }, (!avatarListo || guardandoAvatar) && estilos.botonDeshabilitado]}
             onPress={guardarAvatar}
@@ -202,26 +209,38 @@ export default function Configuracion() {
           </Pressable>
         </View>
       </View>
-      <View style={estilos.tarjeta}>
-        <Text style={estilos.estilosEtiqueta}>Estilo</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.estilosFila}>
-          {ESTILOS_AVATAR.map((e) => (
-            <Pressable
-              key={e.valor}
-              style={[estilos.estiloOpcion, avatarEstilo === e.valor && estilos.estiloOpcionActivo]}
-              onPress={() => {
-                setErrorAvatar(null);
-                setAvatarEstilo(e.valor);
-              }}
-            >
-              <Avatar avatarSeed={avatarSeed} avatarEstilo={e.valor} tamano={48} />
-              <Text style={[estilos.estiloEtiquetaTexto, avatarEstilo === e.valor && estilos.estiloEtiquetaTextoActivo]}>
-                {e.etiqueta}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+
+      <Modal
+        visible={mostrarSelectorEstilo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMostrarSelectorEstilo(false)}
+      >
+        <View style={estilos.modalFondo}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMostrarSelectorEstilo(false)} />
+          <View style={estilos.modalContenido}>
+            <Text style={estilos.modalTitulo}>Elige un estilo</Text>
+            <View style={estilos.modalGrid}>
+              {ESTILOS_AVATAR.map((e) => (
+                <Pressable
+                  key={e.valor}
+                  style={[estilos.estiloOpcion, avatarEstilo === e.valor && estilos.estiloOpcionActivo]}
+                  onPress={() => {
+                    setErrorAvatar(null);
+                    setAvatarEstilo(e.valor);
+                    setMostrarSelectorEstilo(false);
+                  }}
+                >
+                  <Avatar avatarSeed={avatarSeed} avatarEstilo={e.valor} tamano={56} />
+                  <Text style={[estilos.estiloEtiquetaTexto, avatarEstilo === e.valor && estilos.estiloEtiquetaTextoActivo]}>
+                    {e.etiqueta}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Text style={estilos.tarjetaTitulo}>TU CUENTA</Text>
       <View style={estilos.tarjeta}>
@@ -349,6 +368,7 @@ const estilos = StyleSheet.create({
   boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 6 },
   tarjetaAvatar: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatarBotones: { flex: 1, gap: 10 },
+  avatarBotonesFila: { flexDirection: 'row', gap: 10 },
   botonSecundario: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -360,18 +380,27 @@ const estilos = StyleSheet.create({
     paddingVertical: 10,
   },
   botonSecundarioTexto: { color: colores.navy, fontWeight: '700', fontSize: 13 },
-  estilosEtiqueta: { fontSize: 13, color: colores.textoSecundario, fontWeight: '600', marginBottom: 10 },
-  estilosFila: { flexDirection: 'row', gap: 12 },
+  modalFondo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContenido: {
+    backgroundColor: colores.tarjeta,
+    borderRadius: radios.tarjeta,
+    padding: 20,
+    width: '100%',
+    maxWidth: 380,
+  },
+  modalTitulo: { fontSize: 15, fontWeight: '700', color: colores.texto, marginBottom: 14, textAlign: 'center' },
+  modalGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12 },
   estiloOpcion: {
     alignItems: 'center',
     gap: 6,
     padding: 8,
+    width: 84,
     borderRadius: radios.tarjeta,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   estiloOpcionActivo: { borderColor: colores.navy, backgroundColor: colores.gris },
-  estiloEtiquetaTexto: { fontSize: 11, color: colores.textoSecundario, fontWeight: '600' },
+  estiloEtiquetaTexto: { fontSize: 11, color: colores.textoSecundario, fontWeight: '600', textAlign: 'center' },
   estiloEtiquetaTextoActivo: { color: colores.navy },
   botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
