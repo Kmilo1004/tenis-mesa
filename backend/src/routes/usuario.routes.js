@@ -83,17 +83,24 @@ router.get('/usuarios/me', verificarToken, async (req, res, next) => {
   }
 });
 
-// PATCH /usuarios/me — por ahora solo permite cambiar el nombre propio.
+// PATCH /usuarios/me — cambiar el nombre y/o la semilla del avatar propios.
 router.patch('/usuarios/me', verificarToken, async (req, res, next) => {
   try {
-    const { nombre } = req.body;
-    if (!nombre || !nombre.trim()) {
-      return res.status(400).json({ error: 'nombre es obligatorio' });
+    const { nombre, avatarSeed } = req.body;
+    if (nombre !== undefined && !nombre.trim()) {
+      return res.status(400).json({ error: 'nombre no puede quedar vacío' });
     }
+    if (nombre === undefined && avatarSeed === undefined) {
+      return res.status(400).json({ error: 'nombre o avatarSeed son obligatorios' });
+    }
+
+    const data = {};
+    if (nombre !== undefined) data.nombre = nombre.trim();
+    if (avatarSeed !== undefined) data.avatarSeed = avatarSeed;
 
     const usuario = await prisma.usuario.update({
       where: { id: req.usuarioId },
-      data: { nombre: nombre.trim() },
+      data,
       include: { roles: true },
     });
 
@@ -167,7 +174,7 @@ router.get('/usuarios/buscar', verificarToken, async (req, res, next) => {
         id: { not: req.usuarioId },
         nombre: { contains: q, mode: 'insensitive' },
       },
-      select: { id: true, nombre: true },
+      select: { id: true, nombre: true, avatarSeed: true },
       take: 20,
       orderBy: { nombre: 'asc' },
     });
@@ -191,6 +198,7 @@ router.get('/usuarios', verificarToken, requiereRol('administrador'), async (req
       select: {
         id: true,
         nombre: true,
+        avatarSeed: true,
         correo: true,
         activo: true,
         nivel: true,
@@ -408,7 +416,7 @@ router.get('/usuarios/:id/estadisticas', verificarToken, async (req, res, next) 
   try {
     const usuario = await prisma.usuario.findUnique({
       where: { id: req.params.id },
-      select: { id: true, nombre: true, eloOficial: true, eloNoOficial: true, nivel: true },
+      select: { id: true, nombre: true, avatarSeed: true, eloOficial: true, eloNoOficial: true, nivel: true },
     });
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });

@@ -19,7 +19,7 @@ async function obtenerRanking(req, campoElo) {
   const usuarios = await prisma.usuario.findMany({
     where,
     orderBy: [{ [campoElo]: 'desc' }, { nombre: 'asc' }],
-    select: { id: true, nombre: true, nivel: true, [campoElo]: true },
+    select: { id: true, nombre: true, avatarSeed: true, nivel: true, [campoElo]: true },
   });
 
   const conHistorial = await prisma.historialRanking.groupBy({

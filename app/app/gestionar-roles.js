@@ -211,7 +211,7 @@ export default function GestionarRoles() {
             return (
               <View style={estilos.tarjeta}>
                 <View style={estilos.filaEncabezado}>
-                  <Avatar nombre={item.nombre} tamano={40} />
+                  <Avatar nombre={item.nombre} avatarSeed={item.avatarSeed} tamano={40} />
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <Text style={estilos.nombre}>{item.nombre}</Text>
                     <Text style={estilos.correo}>{item.correo}</Text>

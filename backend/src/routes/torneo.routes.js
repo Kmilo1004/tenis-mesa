@@ -390,7 +390,7 @@ router.get('/torneos/:id/inscripciones', async (req, res, next) => {
 
     const inscripciones = await prisma.inscripcion.findMany({
       where: { torneoId: torneo.id },
-      include: { usuario: { select: { id: true, nombre: true, tipo: true, eloOficial: true } } },
+      include: { usuario: { select: { id: true, nombre: true, avatarSeed: true, tipo: true, eloOficial: true } } },
       orderBy: { fechaInscripcion: 'asc' },
     });
 

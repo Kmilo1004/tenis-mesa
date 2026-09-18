@@ -33,6 +33,7 @@ enum Rol {
 model Usuario {
   id                String   @id @default(uuid())
   nombre            String
+  avatarSeed        String?  @map("avatar_seed")
   correo            String?  @unique
   passwordHash      String?  @map("password_hash")
   tipo              TipoUsuario

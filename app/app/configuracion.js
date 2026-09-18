@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthContext';
 import CampoTexto from '../src/components/CampoTexto';
+import Avatar from '../src/components/Avatar';
 import { avisar } from '../src/lib/alertas';
 import { notificacionesActivadas, establecerNotificacionesActivadas } from '../src/lib/pushNotifications';
 import { esVersionMasNueva } from '../src/lib/actualizaciones';
@@ -19,6 +20,10 @@ export default function Configuracion() {
   const [nombre, setNombre] = useState(usuario?.nombre || '');
   const [guardandoNombre, setGuardandoNombre] = useState(false);
   const [errorNombre, setErrorNombre] = useState(null);
+
+  const [avatarSeed, setAvatarSeed] = useState(usuario?.avatarSeed || usuario?.nombre || '');
+  const [guardandoAvatar, setGuardandoAvatar] = useState(false);
+  const [errorAvatar, setErrorAvatar] = useState(null);
 
   const [pushActivado, setPushActivado] = useState(true);
   const [cambiandoPush, setCambiandoPush] = useState(false);
@@ -42,6 +47,10 @@ export default function Configuracion() {
   useEffect(() => {
     if (usuario) setNombre(usuario.nombre);
   }, [usuario?.nombre]);
+
+  useEffect(() => {
+    if (usuario) setAvatarSeed(usuario.avatarSeed || usuario.nombre);
+  }, [usuario?.avatarSeed, usuario?.nombre]);
 
   useEffect(() => {
     buscarActualizacion({ silencioso: true });
@@ -78,6 +87,24 @@ export default function Configuracion() {
       setErrorNombre(err.message);
     } finally {
       setGuardandoNombre(false);
+    }
+  }
+
+  function probarOtroAvatar() {
+    setErrorAvatar(null);
+    setAvatarSeed(Math.random().toString(36).slice(2, 10));
+  }
+
+  async function guardarAvatar() {
+    setErrorAvatar(null);
+    setGuardandoAvatar(true);
+    try {
+      await apiFetch('/usuarios/me', { method: 'PATCH', token, body: JSON.stringify({ avatarSeed }) });
+      await refrescarUsuario();
+    } catch (err) {
+      setErrorAvatar(err.message);
+    } finally {
+      setGuardandoAvatar(false);
     }
   }
 
@@ -141,12 +168,32 @@ export default function Configuracion() {
   }
 
   const nombreListo = nombre.trim().length > 0 && nombre.trim() !== usuario.nombre;
+  const avatarListo = avatarSeed !== (usuario.avatarSeed || usuario.nombre);
   const passwordListo = passwordActual.length > 0 && passwordNueva.length >= 8 && passwordNueva === passwordConfirmar;
   const passwordNoCoincide = passwordConfirmar.length > 0 && passwordNueva !== passwordConfirmar;
 
   return (
     <ScrollView contentContainerStyle={estilos.contenedor}>
       <Stack.Screen options={{ title: 'Configuración' }} />
+
+      <Text style={estilos.tarjetaTitulo}>AVATAR</Text>
+      <View style={[estilos.tarjeta, estilos.tarjetaAvatar]}>
+        <Avatar avatarSeed={avatarSeed} nombre={usuario.nombre} tamano={84} />
+        <View style={estilos.avatarBotones}>
+          {errorAvatar && <Text style={estilos.error}>{errorAvatar}</Text>}
+          <Pressable style={estilos.botonSecundario} onPress={probarOtroAvatar}>
+            <Ionicons name="shuffle-outline" size={16} color={colores.navy} />
+            <Text style={estilos.botonSecundarioTexto}>Probar otro</Text>
+          </Pressable>
+          <Pressable
+            style={[estilos.boton, { marginTop: 0 }, (!avatarListo || guardandoAvatar) && estilos.botonDeshabilitado]}
+            onPress={guardarAvatar}
+            disabled={!avatarListo || guardandoAvatar}
+          >
+            {guardandoAvatar ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Guardar avatar</Text>}
+          </Pressable>
+        </View>
+      </View>
 
       <Text style={estilos.tarjetaTitulo}>TU CUENTA</Text>
       <View style={estilos.tarjeta}>
@@ -272,6 +319,19 @@ const estilos = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
   },
   boton: { backgroundColor: colores.navy, paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 6 },
+  tarjetaAvatar: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  avatarBotones: { flex: 1, gap: 10 },
+  botonSecundario: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colores.navy,
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  botonSecundarioTexto: { color: colores.navy, fontWeight: '700', fontSize: 13 },
   botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
   error: { color: colores.error, fontSize: 13, marginBottom: 8 },
