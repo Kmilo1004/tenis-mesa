@@ -118,7 +118,7 @@ export default function PerfilJugador() {
       <Stack.Screen options={{ title: usuario.nombre, headerLeft: botonVolver }} />
 
       <View style={estilos.encabezado}>
-        <Avatar nombre={usuario.nombre} avatarSeed={usuario.avatarSeed} tamano={64} />
+        <Avatar nombre={usuario.nombre} avatarSeed={usuario.avatarSeed} avatarEstilo={usuario.avatarEstilo} tamano={64} />
         {mostrarNivel && (
           <View style={{ marginTop: 6 }}>
             <EtiquetaNivel nivel={usuario.nivel} />

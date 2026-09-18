@@ -36,7 +36,7 @@ export default function SelectorJugador({ etiqueta, valor, onSeleccionar, exclui
       <Text style={estilos.etiqueta}>{etiqueta}</Text>
       {valor ? (
         <View style={estilos.seleccionado}>
-          <Avatar nombre={valor.nombre} avatarSeed={valor.avatarSeed} tamano={36} />
+          <Avatar nombre={valor.nombre} avatarSeed={valor.avatarSeed} avatarEstilo={valor.avatarEstilo} tamano={36} />
           <Text style={estilos.nombreSeleccionado}>{valor.nombre}</Text>
           <Pressable onPress={() => onSeleccionar(null)} hitSlop={8}>
             <Text style={estilos.cambiar}>Cambiar</Text>
@@ -54,7 +54,7 @@ export default function SelectorJugador({ etiqueta, valor, onSeleccionar, exclui
           {buscando && <ActivityIndicator style={{ marginTop: 8 }} color={colores.navy} />}
           {resultados.map((u) => (
             <Pressable key={u.id} style={estilos.resultado} onPress={() => onSeleccionar(u)}>
-              <Avatar nombre={u.nombre} avatarSeed={u.avatarSeed} tamano={32} />
+              <Avatar nombre={u.nombre} avatarSeed={u.avatarSeed} avatarEstilo={u.avatarEstilo} tamano={32} />
               <Text style={estilos.resultadoNombre}>{u.nombre}</Text>
             </Pressable>
           ))}

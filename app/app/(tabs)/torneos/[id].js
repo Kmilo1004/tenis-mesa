@@ -387,7 +387,7 @@ export default function DetalleTorneo() {
           ) : (
             inscritos.map((item, i) => (
               <View key={item.id} style={[estilos.filaInscrito, i > 0 && estilos.filaConDivisor]}>
-                <Avatar nombre={item.usuario.nombre} avatarSeed={item.usuario.avatarSeed} tamano={32} />
+                <Avatar nombre={item.usuario.nombre} avatarSeed={item.usuario.avatarSeed} avatarEstilo={item.usuario.avatarEstilo} tamano={32} />
                 <Text style={estilos.inscritoNombre}>{item.usuario.nombre}</Text>
                 {item.usuario.tipo === 'externo' && (
                   <View style={estilos.tagExterno}>

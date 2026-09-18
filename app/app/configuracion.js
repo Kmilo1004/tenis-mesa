@@ -10,6 +10,7 @@ import Avatar from '../src/components/Avatar';
 import { avisar } from '../src/lib/alertas';
 import { notificacionesActivadas, establecerNotificacionesActivadas } from '../src/lib/pushNotifications';
 import { esVersionMasNueva } from '../src/lib/actualizaciones';
+import { ESTILOS_AVATAR, ESTILO_AVATAR_POR_DEFECTO } from '../src/lib/avatares';
 import { colores, radios } from '../src/theme/colores';
 
 const VERSION_ACTUAL = Constants.expoConfig?.version || '1.0.0';
@@ -22,6 +23,7 @@ export default function Configuracion() {
   const [errorNombre, setErrorNombre] = useState(null);
 
   const [avatarSeed, setAvatarSeed] = useState(usuario?.avatarSeed || usuario?.nombre || '');
+  const [avatarEstilo, setAvatarEstilo] = useState(usuario?.avatarEstilo || ESTILO_AVATAR_POR_DEFECTO);
   const [guardandoAvatar, setGuardandoAvatar] = useState(false);
   const [errorAvatar, setErrorAvatar] = useState(null);
 
@@ -51,6 +53,10 @@ export default function Configuracion() {
   useEffect(() => {
     if (usuario) setAvatarSeed(usuario.avatarSeed || usuario.nombre);
   }, [usuario?.avatarSeed, usuario?.nombre]);
+
+  useEffect(() => {
+    if (usuario) setAvatarEstilo(usuario.avatarEstilo || ESTILO_AVATAR_POR_DEFECTO);
+  }, [usuario?.avatarEstilo]);
 
   useEffect(() => {
     buscarActualizacion({ silencioso: true });
@@ -93,13 +99,14 @@ export default function Configuracion() {
   function probarOtroAvatar() {
     setErrorAvatar(null);
     setAvatarSeed(Math.random().toString(36).slice(2, 10));
+    setAvatarEstilo(ESTILOS_AVATAR[Math.floor(Math.random() * ESTILOS_AVATAR.length)].valor);
   }
 
   async function guardarAvatar() {
     setErrorAvatar(null);
     setGuardandoAvatar(true);
     try {
-      await apiFetch('/usuarios/me', { method: 'PATCH', token, body: JSON.stringify({ avatarSeed }) });
+      await apiFetch('/usuarios/me', { method: 'PATCH', token, body: JSON.stringify({ avatarSeed, avatarEstilo }) });
       await refrescarUsuario();
     } catch (err) {
       setErrorAvatar(err.message);
@@ -168,7 +175,8 @@ export default function Configuracion() {
   }
 
   const nombreListo = nombre.trim().length > 0 && nombre.trim() !== usuario.nombre;
-  const avatarListo = avatarSeed !== (usuario.avatarSeed || usuario.nombre);
+  const avatarListo =
+    avatarSeed !== (usuario.avatarSeed || usuario.nombre) || avatarEstilo !== (usuario.avatarEstilo || ESTILO_AVATAR_POR_DEFECTO);
   const passwordListo = passwordActual.length > 0 && passwordNueva.length >= 8 && passwordNueva === passwordConfirmar;
   const passwordNoCoincide = passwordConfirmar.length > 0 && passwordNueva !== passwordConfirmar;
 
@@ -178,7 +186,7 @@ export default function Configuracion() {
 
       <Text style={estilos.tarjetaTitulo}>AVATAR</Text>
       <View style={[estilos.tarjeta, estilos.tarjetaAvatar]}>
-        <Avatar avatarSeed={avatarSeed} nombre={usuario.nombre} tamano={84} />
+        <Avatar avatarSeed={avatarSeed} avatarEstilo={avatarEstilo} nombre={usuario.nombre} tamano={84} />
         <View style={estilos.avatarBotones}>
           {errorAvatar && <Text style={estilos.error}>{errorAvatar}</Text>}
           <Pressable style={estilos.botonSecundario} onPress={probarOtroAvatar}>
@@ -193,6 +201,26 @@ export default function Configuracion() {
             {guardandoAvatar ? <ActivityIndicator color={colores.textoClaro} /> : <Text style={estilos.botonTexto}>Guardar avatar</Text>}
           </Pressable>
         </View>
+      </View>
+      <View style={estilos.tarjeta}>
+        <Text style={estilos.estilosEtiqueta}>Estilo</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.estilosFila}>
+          {ESTILOS_AVATAR.map((e) => (
+            <Pressable
+              key={e.valor}
+              style={[estilos.estiloOpcion, avatarEstilo === e.valor && estilos.estiloOpcionActivo]}
+              onPress={() => {
+                setErrorAvatar(null);
+                setAvatarEstilo(e.valor);
+              }}
+            >
+              <Avatar avatarSeed={avatarSeed} avatarEstilo={e.valor} tamano={48} />
+              <Text style={[estilos.estiloEtiquetaTexto, avatarEstilo === e.valor && estilos.estiloEtiquetaTextoActivo]}>
+                {e.etiqueta}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       <Text style={estilos.tarjetaTitulo}>TU CUENTA</Text>
@@ -332,6 +360,19 @@ const estilos = StyleSheet.create({
     paddingVertical: 10,
   },
   botonSecundarioTexto: { color: colores.navy, fontWeight: '700', fontSize: 13 },
+  estilosEtiqueta: { fontSize: 13, color: colores.textoSecundario, fontWeight: '600', marginBottom: 10 },
+  estilosFila: { flexDirection: 'row', gap: 12 },
+  estiloOpcion: {
+    alignItems: 'center',
+    gap: 6,
+    padding: 8,
+    borderRadius: radios.tarjeta,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  estiloOpcionActivo: { borderColor: colores.navy, backgroundColor: colores.gris },
+  estiloEtiquetaTexto: { fontSize: 11, color: colores.textoSecundario, fontWeight: '600' },
+  estiloEtiquetaTextoActivo: { color: colores.navy },
   botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
   error: { color: colores.error, fontSize: 13, marginBottom: 8 },

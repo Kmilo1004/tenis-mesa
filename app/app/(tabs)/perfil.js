@@ -104,7 +104,7 @@ export default function Perfil() {
         }
       >
         <View style={estilos.filaAvatar}>
-          <Avatar nombre={usuario.nombre} avatarSeed={usuario.avatarSeed} tamano={56} />
+          <Avatar nombre={usuario.nombre} avatarSeed={usuario.avatarSeed} avatarEstilo={usuario.avatarEstilo} tamano={56} />
           <View style={{ marginLeft: 14, flex: 1 }}>
             <Text style={estilos.nombre}>{usuario.nombre}</Text>
             <Text style={estilos.correo}>{usuario.correo}</Text>

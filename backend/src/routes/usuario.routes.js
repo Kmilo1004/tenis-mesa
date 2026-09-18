@@ -6,6 +6,7 @@ const { registrarAuditoria } = require('../lib/auditoria.service');
 const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
 const { INCLUYE_JUGADORES } = require('../lib/partido.constants');
 const { NIVELES_VALIDOS, ELO_INICIAL_POR_NIVEL } = require('../lib/niveles');
+const { ESTILOS_AVATAR_VALIDOS } = require('../lib/avatares');
 
 const router = express.Router();
 
@@ -83,20 +84,24 @@ router.get('/usuarios/me', verificarToken, async (req, res, next) => {
   }
 });
 
-// PATCH /usuarios/me — cambiar el nombre y/o la semilla del avatar propios.
+// PATCH /usuarios/me — cambiar el nombre y/o el avatar (semilla + estilo) propios.
 router.patch('/usuarios/me', verificarToken, async (req, res, next) => {
   try {
-    const { nombre, avatarSeed } = req.body;
+    const { nombre, avatarSeed, avatarEstilo } = req.body;
     if (nombre !== undefined && !nombre.trim()) {
       return res.status(400).json({ error: 'nombre no puede quedar vacío' });
     }
-    if (nombre === undefined && avatarSeed === undefined) {
-      return res.status(400).json({ error: 'nombre o avatarSeed son obligatorios' });
+    if (avatarEstilo !== undefined && avatarEstilo !== null && !ESTILOS_AVATAR_VALIDOS.includes(avatarEstilo)) {
+      return res.status(400).json({ error: `avatarEstilo debe ser uno de: ${ESTILOS_AVATAR_VALIDOS.join(', ')}` });
+    }
+    if (nombre === undefined && avatarSeed === undefined && avatarEstilo === undefined) {
+      return res.status(400).json({ error: 'nombre, avatarSeed o avatarEstilo son obligatorios' });
     }
 
     const data = {};
     if (nombre !== undefined) data.nombre = nombre.trim();
     if (avatarSeed !== undefined) data.avatarSeed = avatarSeed;
+    if (avatarEstilo !== undefined) data.avatarEstilo = avatarEstilo;
 
     const usuario = await prisma.usuario.update({
       where: { id: req.usuarioId },
@@ -174,7 +179,7 @@ router.get('/usuarios/buscar', verificarToken, async (req, res, next) => {
         id: { not: req.usuarioId },
         nombre: { contains: q, mode: 'insensitive' },
       },
-      select: { id: true, nombre: true, avatarSeed: true },
+      select: { id: true, nombre: true, avatarSeed: true, avatarEstilo: true },
       take: 20,
       orderBy: { nombre: 'asc' },
     });
@@ -199,6 +204,7 @@ router.get('/usuarios', verificarToken, requiereRol('administrador'), async (req
         id: true,
         nombre: true,
         avatarSeed: true,
+        avatarEstilo: true,
         correo: true,
         activo: true,
         nivel: true,
@@ -416,7 +422,7 @@ router.get('/usuarios/:id/estadisticas', verificarToken, async (req, res, next) 
   try {
     const usuario = await prisma.usuario.findUnique({
       where: { id: req.params.id },
-      select: { id: true, nombre: true, avatarSeed: true, eloOficial: true, eloNoOficial: true, nivel: true },
+      select: { id: true, nombre: true, avatarSeed: true, avatarEstilo: true, eloOficial: true, eloNoOficial: true, nivel: true },
     });
     if (!usuario) {
       return res.status(404).json({ error: 'Usuario no encontrado' });

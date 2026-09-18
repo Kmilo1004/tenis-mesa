@@ -99,7 +99,7 @@ export default function Ranking() {
                   onPress={() => router.push(`/ranking/${item.id}`)}
                 >
                   <Text style={estilos.posicion}>{item.clasificado ? `#${item.posicion}` : '–'}</Text>
-                  <Avatar nombre={item.nombre} avatarSeed={item.avatarSeed} tamano={38} />
+                  <Avatar nombre={item.nombre} avatarSeed={item.avatarSeed} avatarEstilo={item.avatarEstilo} tamano={38} />
                   <View style={estilos.columnaNombre}>
                     <Text style={estilos.nombre}>{item.nombre}</Text>
                     {mostrarNivel && <EtiquetaNivel nivel={item.nivel} tamano="chico" />}
