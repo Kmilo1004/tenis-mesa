@@ -17,7 +17,8 @@
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/Logo.jpeg"
-      }
+      },
+      "permissions": ["REQUEST_INSTALL_PACKAGES"]
     },
     "web": {
       "favicon": "./assets/Logo.jpeg"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Switch, Linking, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Switch, Linking, Modal, Platform } from 'react-native';
 import { router, Stack } from 'expo-router';
 import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -11,6 +11,7 @@ import Avatar from '../src/components/Avatar';
 import { avisar } from '../src/lib/alertas';
 import { notificacionesActivadas, establecerNotificacionesActivadas } from '../src/lib/pushNotifications';
 import { esVersionMasNueva } from '../src/lib/actualizaciones';
+import { descargarEInstalarApk } from '../src/lib/actualizarApk';
 import { ESTILOS_AVATAR, ESTILO_AVATAR_POR_DEFECTO } from '../src/lib/avatares';
 import { colores, radios } from '../src/theme/colores';
 
@@ -42,6 +43,9 @@ export default function Configuracion() {
 
   const [buscandoActualizacion, setBuscandoActualizacion] = useState(false);
   const [actualizacionDisponible, setActualizacionDisponible] = useState(null);
+  const [instalandoActualizacion, setInstalandoActualizacion] = useState(false);
+  const [progresoActualizacion, setProgresoActualizacion] = useState(0);
+  const [errorActualizacion, setErrorActualizacion] = useState(null);
 
   useEffect(() => {
     notificacionesActivadas().then(setPushActivado);
@@ -83,6 +87,23 @@ export default function Configuracion() {
       }
     } finally {
       setBuscandoActualizacion(false);
+    }
+  }
+
+  async function instalarActualizacion() {
+    if (Platform.OS !== 'android') {
+      Linking.openURL(actualizacionDisponible.url);
+      return;
+    }
+    setErrorActualizacion(null);
+    setInstalandoActualizacion(true);
+    setProgresoActualizacion(0);
+    try {
+      await descargarEInstalarApk(actualizacionDisponible.url, setProgresoActualizacion);
+    } catch (err) {
+      setErrorActualizacion(err.message);
+    } finally {
+      setInstalandoActualizacion(false);
     }
   }
 
@@ -346,8 +367,19 @@ export default function Configuracion() {
                 {actualizacionDisponible.notas && <Text style={estilos.actualizacionNotas}>{actualizacionDisponible.notas}</Text>}
               </View>
             </View>
-            <Pressable style={estilos.botonActualizar} onPress={() => Linking.openURL(actualizacionDisponible.url)}>
-              <Text style={estilos.botonActualizarTexto}>Descargar</Text>
+            {errorActualizacion && <Text style={estilos.error}>{errorActualizacion}</Text>}
+            <Pressable
+              style={[estilos.botonActualizar, instalandoActualizacion && estilos.botonDeshabilitado]}
+              onPress={instalarActualizacion}
+              disabled={instalandoActualizacion}
+            >
+              {instalandoActualizacion ? (
+                <Text style={estilos.botonActualizarTexto}>Descargando… {Math.round(progresoActualizacion * 100)}%</Text>
+              ) : (
+                <Text style={estilos.botonActualizarTexto}>
+                  {Platform.OS === 'android' ? 'Descargar e instalar' : 'Descargar'}
+                </Text>
+              )}
             </Pressable>
           </View>
         )}
