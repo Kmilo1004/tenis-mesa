@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Switc
 import { router, Stack } from 'expo-router';
 import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { apiFetch } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthContext';
 import CampoTexto from '../src/components/CampoTexto';
@@ -27,6 +28,7 @@ export default function Configuracion() {
   const [guardandoAvatar, setGuardandoAvatar] = useState(false);
   const [errorAvatar, setErrorAvatar] = useState(null);
   const [mostrarSelectorEstilo, setMostrarSelectorEstilo] = useState(false);
+  const [opcionesElegir, setOpcionesElegir] = useState([]);
 
   const [pushActivado, setPushActivado] = useState(true);
   const [cambiandoPush, setCambiandoPush] = useState(false);
@@ -97,10 +99,25 @@ export default function Configuracion() {
     }
   }
 
+  function semillaAleatoria() {
+    return Math.random().toString(36).slice(2, 10);
+  }
+
+  function estiloAleatorio() {
+    return ESTILOS_AVATAR[Math.floor(Math.random() * ESTILOS_AVATAR.length)].valor;
+  }
+
   function aleatorizarAvatar() {
     setErrorAvatar(null);
-    setAvatarSeed(Math.random().toString(36).slice(2, 10));
-    setAvatarEstilo(ESTILOS_AVATAR[Math.floor(Math.random() * ESTILOS_AVATAR.length)].valor);
+    setAvatarSeed(semillaAleatoria());
+    setAvatarEstilo(estiloAleatorio());
+  }
+
+  function abrirSelector() {
+    setOpcionesElegir(
+      Array.from({ length: 12 }, () => ({ seed: semillaAleatoria(), estilo: estiloAleatorio() }))
+    );
+    setMostrarSelectorEstilo(true);
   }
 
   async function guardarAvatar() {
@@ -195,8 +212,8 @@ export default function Configuracion() {
               <Ionicons name="shuffle-outline" size={16} color={colores.navy} />
               <Text style={estilos.botonSecundarioTexto}>Aleatorio</Text>
             </Pressable>
-            <Pressable style={[estilos.botonSecundario, { flex: 1 }]} onPress={() => setMostrarSelectorEstilo(true)}>
-              <Ionicons name="hand-left-outline" size={16} color={colores.navy} />
+            <Pressable style={[estilos.botonSecundario, { flex: 1 }]} onPress={abrirSelector}>
+              <FontAwesome5 name="hand-point-up" size={14} color={colores.navy} solid />
               <Text style={estilos.botonSecundarioTexto}>Elegir</Text>
             </Pressable>
           </View>
@@ -219,25 +236,30 @@ export default function Configuracion() {
         <View style={estilos.modalFondo}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setMostrarSelectorEstilo(false)} />
           <View style={estilos.modalContenido}>
-            <Text style={estilos.modalTitulo}>Elige un estilo</Text>
+            <Text style={estilos.modalTitulo}>Elige tu avatar</Text>
             <View style={estilos.modalGrid}>
-              {ESTILOS_AVATAR.map((e) => (
-                <Pressable
-                  key={e.valor}
-                  style={[estilos.estiloOpcion, avatarEstilo === e.valor && estilos.estiloOpcionActivo]}
-                  onPress={() => {
-                    setErrorAvatar(null);
-                    setAvatarEstilo(e.valor);
-                    setMostrarSelectorEstilo(false);
-                  }}
-                >
-                  <Avatar avatarSeed={avatarSeed} avatarEstilo={e.valor} tamano={56} />
-                  <Text style={[estilos.estiloEtiquetaTexto, avatarEstilo === e.valor && estilos.estiloEtiquetaTextoActivo]}>
-                    {e.etiqueta}
-                  </Text>
-                </Pressable>
-              ))}
+              {opcionesElegir.map((op, i) => {
+                const activo = avatarSeed === op.seed && avatarEstilo === op.estilo;
+                return (
+                  <Pressable
+                    key={`${op.seed}-${op.estilo}-${i}`}
+                    style={[estilos.opcionAvatar, activo && estilos.estiloOpcionActivo]}
+                    onPress={() => {
+                      setErrorAvatar(null);
+                      setAvatarSeed(op.seed);
+                      setAvatarEstilo(op.estilo);
+                      setMostrarSelectorEstilo(false);
+                    }}
+                  >
+                    <Avatar avatarSeed={op.seed} avatarEstilo={op.estilo} tamano={56} />
+                  </Pressable>
+                );
+              })}
             </View>
+            <Pressable style={estilos.botonSecundario} onPress={abrirSelector}>
+              <Ionicons name="refresh-outline" size={16} color={colores.navy} />
+              <Text style={estilos.botonSecundarioTexto}>Ver más opciones</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -389,19 +411,14 @@ const estilos = StyleSheet.create({
     maxWidth: 380,
   },
   modalTitulo: { fontSize: 15, fontWeight: '700', color: colores.texto, marginBottom: 14, textAlign: 'center' },
-  modalGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12 },
-  estiloOpcion: {
-    alignItems: 'center',
-    gap: 6,
-    padding: 8,
-    width: 84,
-    borderRadius: radios.tarjeta,
+  modalGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginBottom: 16 },
+  opcionAvatar: {
+    padding: 4,
+    borderRadius: 999,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   estiloOpcionActivo: { borderColor: colores.navy, backgroundColor: colores.gris },
-  estiloEtiquetaTexto: { fontSize: 11, color: colores.textoSecundario, fontWeight: '600', textAlign: 'center' },
-  estiloEtiquetaTextoActivo: { color: colores.navy },
   botonDeshabilitado: { opacity: 0.5 },
   botonTexto: { color: colores.textoClaro, fontWeight: '700' },
   error: { color: colores.error, fontSize: 13, marginBottom: 8 },
