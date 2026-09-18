@@ -170,17 +170,31 @@ export default function ListaPartidos() {
 // registrar un partido (con una animación sutil) en vez de mostrar siempre los dos botones.
 function MenuNuevoPartido() {
   const [abierto, setAbierto] = useState(false);
+  // Mientras está cerrado del todo, las píldoras ni se montan: en Android, un elemento con
+  // elevación (la sombra) puede seguir dibujando esa sombra aunque su opacidad animada llegue a
+  // 0, y quedaba un rastro de sombra "flotando" sobre el botón + una vez terminaba la animación.
+  const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const progreso = useRef(new Animated.Value(0)).current;
 
+  function cerrar() {
+    setAbierto(false);
+    Animated.spring(progreso, { toValue: 0, useNativeDriver: true, speed: 18, bounciness: 8 }).start(() => {
+      setMostrarOpciones(false);
+    });
+  }
+
   function alternar() {
-    const destino = abierto ? 0 : 1;
-    setAbierto(!abierto);
-    Animated.spring(progreso, { toValue: destino, useNativeDriver: true, speed: 18, bounciness: 8 }).start();
+    if (abierto) {
+      cerrar();
+      return;
+    }
+    setMostrarOpciones(true);
+    setAbierto(true);
+    Animated.spring(progreso, { toValue: 1, useNativeDriver: true, speed: 18, bounciness: 8 }).start();
   }
 
   function ir(ruta) {
-    setAbierto(false);
-    Animated.timing(progreso, { toValue: 0, duration: 120, useNativeDriver: true }).start();
+    cerrar();
     router.push(ruta);
   }
 
@@ -196,19 +210,23 @@ function MenuNuevoPartido() {
 
   return (
     <View style={estilos.menuNuevo} pointerEvents="box-none">
-      <Animated.View style={[estilos.opcionFab, estiloOpcion(1)]} pointerEvents={abierto ? 'auto' : 'none'}>
-        <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/desafio')}>
-          <Text style={estilos.opcionFabPildoraTexto} numberOfLines={1}>Desafiar</Text>
-          <Ionicons name="flash" size={17} color={colores.textoClaro} />
-        </Pressable>
-      </Animated.View>
+      {mostrarOpciones && (
+        <>
+          <Animated.View style={[estilos.opcionFab, estiloOpcion(1)]} pointerEvents={abierto ? 'auto' : 'none'}>
+            <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/desafio')}>
+              <Text style={estilos.opcionFabPildoraTexto} numberOfLines={1}>Desafiar</Text>
+              <Ionicons name="flash" size={17} color={colores.textoClaro} />
+            </Pressable>
+          </Animated.View>
 
-      <Animated.View style={[estilos.opcionFab, estiloOpcion(0)]} pointerEvents={abierto ? 'auto' : 'none'}>
-        <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/nuevo')}>
-          <Text style={estilos.opcionFabPildoraTexto} numberOfLines={1}>Registrar</Text>
-          <Ionicons name="create-outline" size={17} color={colores.textoClaro} />
-        </Pressable>
-      </Animated.View>
+          <Animated.View style={[estilos.opcionFab, estiloOpcion(0)]} pointerEvents={abierto ? 'auto' : 'none'}>
+            <Pressable style={estilos.opcionFabPildora} onPress={() => ir('/partidos/nuevo')}>
+              <Text style={estilos.opcionFabPildoraTexto} numberOfLines={1}>Registrar</Text>
+              <Ionicons name="create-outline" size={17} color={colores.textoClaro} />
+            </Pressable>
+          </Animated.View>
+        </>
+      )}
 
       <Pressable style={estilos.fabPrincipal} onPress={alternar}>
         <Animated.View style={{ transform: [{ rotate: rotacion }] }}>
