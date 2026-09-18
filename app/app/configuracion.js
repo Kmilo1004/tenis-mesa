@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Switch, Alert, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Switch, Linking } from 'react-native';
 import { router, Stack } from 'expo-router';
 import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthContext';
 import CampoTexto from '../src/components/CampoTexto';
+import { avisar } from '../src/lib/alertas';
 import { notificacionesActivadas, establecerNotificacionesActivadas } from '../src/lib/pushNotifications';
 import { esVersionMasNueva } from '../src/lib/actualizaciones';
 import { colores, radios } from '../src/theme/colores';
@@ -55,12 +56,12 @@ export default function Configuracion() {
       } else {
         setActualizacionDisponible(null);
         if (!silencioso) {
-          Alert.alert('Ya estás al día', 'Tienes instalada la última versión de la app.');
+          avisar('Ya estás al día', 'Tienes instalada la última versión de la app.');
         }
       }
     } catch (err) {
       if (!silencioso) {
-        Alert.alert('No se pudo buscar actualizaciones', err.message);
+        avisar('No se pudo buscar actualizaciones', err.message);
       }
     } finally {
       setBuscandoActualizacion(false);

@@ -119,7 +119,6 @@ export default function PerfilJugador() {
 
       <View style={estilos.encabezado}>
         <Avatar nombre={usuario.nombre} tamano={64} />
-        <Text style={estilos.nombre}>{usuario.nombre}</Text>
         {mostrarNivel && (
           <View style={{ marginTop: 6 }}>
             <EtiquetaNivel nivel={usuario.nivel} />
@@ -319,7 +318,6 @@ const estilos = StyleSheet.create({
   error: { color: colores.error, textAlign: 'center', paddingHorizontal: 24 },
   contenedor: { padding: 16, paddingBottom: 48, backgroundColor: colores.fondo },
   encabezado: { alignItems: 'center', marginBottom: 16, marginTop: 8 },
-  nombre: { fontSize: 19, fontWeight: '800', color: colores.texto, marginTop: 10, textAlign: 'center' },
   tarjeta: {
     backgroundColor: colores.tarjeta,
     borderRadius: radios.tarjeta,

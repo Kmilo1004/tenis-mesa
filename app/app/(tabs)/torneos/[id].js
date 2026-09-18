@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
@@ -8,6 +8,7 @@ import SeccionGrupos from '../../../src/components/SeccionGrupos';
 import Avatar from '../../../src/components/Avatar';
 import SelectorOpciones from '../../../src/components/SelectorOpciones';
 import { descargarYCompartir } from '../../../src/lib/exportar';
+import { confirmarAccion } from '../../../src/lib/alertas';
 import { colores, radios } from '../../../src/theme/colores';
 
 const ETIQUETAS_ESTADO = {
@@ -121,13 +122,10 @@ export default function DetalleTorneo() {
   }
 
   function confirmarEliminacion() {
-    Alert.alert(
+    confirmarAccion(
       '¿Eliminar este torneo?',
       'Se borrarán sus inscripciones, grupos y partidos, y se revertirá el efecto que hayan tenido en el ranking. No se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: eliminarTorneo },
-      ],
+      { textoConfirmar: 'Eliminar', destructivo: true, onConfirmar: eliminarTorneo },
     );
   }
 

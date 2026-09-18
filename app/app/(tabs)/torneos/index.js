@@ -18,7 +18,9 @@ const ETIQUETAS_ESTADO = {
 
 export default function ListaTorneos() {
   const { usuario } = useAuth();
-  const esAdmin = usuario?.roles?.some((r) => r.rol === 'administrador');
+  // Cualquier usuario logueado puede crear un torneo (flash y abierto); solo el admin puede
+  // además elegir que sea oficial o interno — eso se restringe en la propia pantalla de creación.
+  const puedeCrear = Boolean(usuario);
 
   const [torneos, setTorneos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -64,7 +66,7 @@ export default function ListaTorneos() {
         <FlatList
           data={torneos}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingTop: 8, paddingBottom: esAdmin ? 96 : 16 }}
+          contentContainerStyle={{ padding: 16, paddingTop: 8, paddingBottom: puedeCrear ? 96 : 16 }}
           onRefresh={cargar}
           refreshing={false}
           ListHeaderComponent={sinConexion ? <AvisoSinConexion /> : null}
@@ -103,11 +105,10 @@ export default function ListaTorneos() {
         />
       )}
 
-      {esAdmin && (
+      {puedeCrear && (
         <Link href="/torneos/nuevo" asChild>
           <Pressable style={estilos.fab}>
-            <Ionicons name="add" size={18} color={colores.textoClaro} />
-            <Text style={estilos.fabTexto}>Crear torneo</Text>
+            <Ionicons name="add" size={30} color={colores.textoClaro} />
           </Pressable>
         </Link>
       )}
@@ -144,15 +145,17 @@ const estilos = StyleSheet.create({
   fab: {
     position: 'absolute',
     bottom: 24,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    right: 20,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: colores.navy,
-    paddingVertical: 14,
-    paddingHorizontal: 22,
-    borderRadius: radios.pildora,
-    elevation: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
-  fabTexto: { color: colores.textoClaro, fontWeight: '700' },
 });

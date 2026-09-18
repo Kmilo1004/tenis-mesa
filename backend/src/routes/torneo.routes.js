@@ -7,7 +7,7 @@ const { registrarAuditoria } = require('../lib/auditoria.service');
 const { notificarPartidoProximo } = require('../lib/notificaciones.service');
 const { revertirEloDePartido } = require('../lib/partidos.service');
 const { INCLUYE_JUGADORES } = require('../lib/partido.constants');
-const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
+const { verificarToken, requiereRol, obtenerRoles } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -52,13 +52,13 @@ function parsearFecha(valor) {
   return Number.isNaN(fecha.getTime()) ? null : fecha;
 }
 
-// POST /torneos — RF-10, solo admin
-router.post('/torneos', verificarToken, requiereRol('administrador'), async (req, res, next) => {
+// POST /torneos — RF-10. Cualquier usuario logueado puede crear un torneo, pero solo el admin
+// puede elegir tipo "oficial" o alcance "interno" — a quien no es admin se le fuerza "flash" y
+// "abierto" sin importar lo que mande, como defensa además del propio formulario del frontend.
+router.post('/torneos', verificarToken, async (req, res, next) => {
   try {
     const {
       nombre,
-      tipo,
-      alcance,
       formato,
       fechaInicio,
       fechaFin,
@@ -67,6 +67,14 @@ router.post('/torneos', verificarToken, requiereRol('administrador'), async (req
       metodoAsignacionGrupos,
       clasificadosPorGrupo,
     } = req.body;
+    let { tipo, alcance } = req.body;
+
+    const rolesUsuario = await obtenerRoles(req.usuarioId);
+    const esAdmin = rolesUsuario.includes('administrador');
+    if (!esAdmin) {
+      tipo = 'flash';
+      alcance = 'abierto';
+    }
 
     if (!nombre || !tipo || !alcance || !formato || !fechaInicio || !fechaFin || !fechaLimiteInscripcion) {
       return res

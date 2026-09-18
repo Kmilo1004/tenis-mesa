@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, Pressable, TextInput, StyleSheet, ActivityIndicator, Switch, Alert } from 'react-native';
+import { View, Text, FlatList, Pressable, TextInput, StyleSheet, ActivityIndicator, Switch } from 'react-native';
 import { Stack, useFocusEffect } from 'expo-router';
 import { apiFetch } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthContext';
 import Avatar from '../src/components/Avatar';
+import { avisar, confirmarAccion } from '../src/lib/alertas';
 import { NIVELES } from '../src/lib/niveles';
 import { colores, radios } from '../src/theme/colores';
 
@@ -65,7 +66,7 @@ export default function GestionarRoles() {
       await apiFetch('/configuracion', { method: 'PATCH', token, body: JSON.stringify({ mostrarNivelEnRanking: valor }) });
     } catch (err) {
       setMostrarNivelEnRanking(!valor);
-      Alert.alert('No se pudo guardar', err.message);
+      avisar('No se pudo guardar', err.message);
     } finally {
       setGuardandoConfig(false);
     }
@@ -83,7 +84,7 @@ export default function GestionarRoles() {
       });
       setUsuarios((actuales) => actuales.map((u) => (u.id === item.id ? { ...u, roles: datos.roles } : u)));
     } catch (err) {
-      Alert.alert('No se pudo cambiar el rol', err.message);
+      avisar('No se pudo cambiar el rol', err.message);
     } finally {
       setActualizando(null);
     }
@@ -96,7 +97,7 @@ export default function GestionarRoles() {
       await apiFetch(`/usuarios/${item.id}/nivel`, { method: 'PATCH', token, body: JSON.stringify({ nivel }) });
       setUsuarios((actuales) => actuales.map((u) => (u.id === item.id ? { ...u, nivel } : u)));
     } catch (err) {
-      Alert.alert('No se pudo cambiar el nivel', err.message);
+      avisar('No se pudo cambiar el nivel', err.message);
     } finally {
       setCambiandoNivelId(null);
     }
@@ -112,60 +113,54 @@ export default function GestionarRoles() {
     const eloOficial = parseInt(eloOficialInput, 10);
     const eloNoOficial = parseInt(eloNoOficialInput, 10);
     if (!Number.isInteger(eloOficial) || !Number.isInteger(eloNoOficial)) {
-      Alert.alert('Valor inválido', 'El ELO debe ser un número entero.');
+      avisar('Valor inválido', 'El ELO debe ser un número entero.');
       return;
     }
 
-    Alert.alert(
+    confirmarAccion(
       '¿Cambiar el ELO a mano?',
       `Vas a poner el Ranking Interno de ${item.nombre} en ${eloOficial} y el Ranking en ${eloNoOficial} directamente, sin que haya jugado un partido. Esto puede distorsionar el ranking del club — úsalo solo para corregir un error. Queda registrado en la auditoría.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cambiar de todas formas',
-          style: 'destructive',
-          onPress: async () => {
-            setGuardandoEloId(item.id);
-            try {
-              await apiFetch(`/usuarios/${item.id}/elo`, {
-                method: 'PATCH',
-                token,
-                body: JSON.stringify({ eloOficial, eloNoOficial }),
-              });
-              setUsuarios((actuales) => actuales.map((u) => (u.id === item.id ? { ...u, eloOficial, eloNoOficial } : u)));
-              setEditandoEloId(null);
-            } catch (err) {
-              Alert.alert('No se pudo cambiar el ELO', err.message);
-            } finally {
-              setGuardandoEloId(null);
-            }
-          },
+      {
+        textoConfirmar: 'Cambiar de todas formas',
+        destructivo: true,
+        onConfirmar: async () => {
+          setGuardandoEloId(item.id);
+          try {
+            await apiFetch(`/usuarios/${item.id}/elo`, {
+              method: 'PATCH',
+              token,
+              body: JSON.stringify({ eloOficial, eloNoOficial }),
+            });
+            setUsuarios((actuales) => actuales.map((u) => (u.id === item.id ? { ...u, eloOficial, eloNoOficial } : u)));
+            setEditandoEloId(null);
+          } catch (err) {
+            avisar('No se pudo cambiar el ELO', err.message);
+          } finally {
+            setGuardandoEloId(null);
+          }
         },
-      ],
+      },
     );
   }
 
   function restablecerPassword(item) {
-    Alert.alert(
+    confirmarAccion(
       '¿Restablecer la contraseña?',
       `Se le va a generar una contraseña temporal nueva a ${item.nombre}. Tendrás que compartírsela tú por otro medio.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Restablecer',
-          onPress: async () => {
-            setRestableciendoId(item.id);
-            try {
-              const { passwordTemporal } = await apiFetch(`/usuarios/${item.id}/restablecer-password`, { method: 'POST', token });
-              Alert.alert('Contraseña temporal generada', `${item.nombre}: ${passwordTemporal}\n\nCompártesela para que inicie sesión y la cambie.`);
-            } catch (err) {
-              Alert.alert('No se pudo restablecer', err.message);
-            } finally {
-              setRestableciendoId(null);
-            }
-          },
+      {
+        textoConfirmar: 'Restablecer',
+        onConfirmar: async () => {
+          setRestableciendoId(item.id);
+          try {
+            const { passwordTemporal } = await apiFetch(`/usuarios/${item.id}/restablecer-password`, { method: 'POST', token });
+            avisar('Contraseña temporal generada', `${item.nombre}: ${passwordTemporal}\n\nCompártesela para que inicie sesión y la cambie.`);
+          } catch (err) {
+            avisar('No se pudo restablecer', err.message);
+          } finally {
+            setRestableciendoId(null);
+          }
         },
-      ],
+      },
     );
   }
 

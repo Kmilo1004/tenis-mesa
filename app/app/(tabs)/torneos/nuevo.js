@@ -7,29 +7,34 @@ import CampoTexto from '../../../src/components/CampoTexto';
 import SelectorOpciones from '../../../src/components/SelectorOpciones';
 import CampoFecha from '../../../src/components/CampoFecha';
 
-const TIPOS = [
+const TIPOS_ADMIN = [
   { valor: 'flash', etiqueta: 'Flash' },
   { valor: 'oficial', etiqueta: 'Oficial' },
 ];
-const ALCANCES = [
+const TIPOS_JUGADOR = [{ valor: 'flash', etiqueta: 'Flash' }];
+const ALCANCES_ADMIN = [
   { valor: 'interno', etiqueta: 'Interno' },
   { valor: 'abierto', etiqueta: 'Abierto' },
 ];
+const ALCANCES_JUGADOR = [{ valor: 'abierto', etiqueta: 'Abierto' }];
 const FORMATOS = [
+  { valor: 'mixto', etiqueta: 'Mixto' },
   { valor: 'eliminacion_directa', etiqueta: 'Eliminación directa' },
   { valor: 'grupos', etiqueta: 'Grupos' },
-  { valor: 'mixto', etiqueta: 'Mixto' },
 ];
 
 const HOY = new Date();
 
 export default function NuevoTorneo() {
-  const { token } = useAuth();
+  const { usuario, token } = useAuth();
+  const esAdmin = usuario?.roles?.some((r) => r.rol === 'administrador');
+  const opcionesTipo = esAdmin ? TIPOS_ADMIN : TIPOS_JUGADOR;
+  const opcionesAlcance = esAdmin ? ALCANCES_ADMIN : ALCANCES_JUGADOR;
 
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState('flash');
-  const [alcance, setAlcance] = useState('interno');
-  const [formato, setFormato] = useState('eliminacion_directa');
+  const [alcance, setAlcance] = useState(esAdmin ? 'interno' : 'abierto');
+  const [formato, setFormato] = useState('mixto');
   const [fechaInicio, setFechaInicio] = useState(null);
   const [fechaFin, setFechaFin] = useState(null);
   const [fechaLimiteInscripcion, setFechaLimiteInscripcion] = useState(null);
@@ -69,8 +74,8 @@ export default function NuevoTorneo() {
       <ScrollView contentContainerStyle={estilos.contenedor}>
         <CampoTexto etiqueta="Nombre del torneo" placeholder="Flash de agosto" value={nombre} onChangeText={setNombre} />
 
-        <SelectorOpciones etiqueta="Tipo" opciones={TIPOS} valor={tipo} onCambiar={setTipo} />
-        <SelectorOpciones etiqueta="Alcance" opciones={ALCANCES} valor={alcance} onCambiar={setAlcance} />
+        <SelectorOpciones etiqueta="Tipo" opciones={opcionesTipo} valor={tipo} onCambiar={setTipo} />
+        <SelectorOpciones etiqueta="Alcance" opciones={opcionesAlcance} valor={alcance} onCambiar={setAlcance} />
         <SelectorOpciones etiqueta="Formato" opciones={FORMATOS} valor={formato} onCambiar={setFormato} />
 
         <CampoFecha etiqueta="Fecha de inicio" valor={fechaInicio} onCambiar={setFechaInicio} minimo={HOY} modo="inicio" />

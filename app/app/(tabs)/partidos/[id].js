@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { apiFetch } from '../../../src/api/client';
 import { useAuth } from '../../../src/auth/AuthContext';
 import EditorSets, { setsIniciales, setsCompletos } from '../../../src/components/EditorSets';
+import { avisar, confirmarAccion } from '../../../src/lib/alertas';
 import { colores, radios } from '../../../src/theme/colores';
 
 const MOTIVOS = [
@@ -118,7 +119,7 @@ export default function DetallePartido() {
       setNotaPersonal(datos.texto);
       setNotaOriginal(datos.texto);
     } catch (err) {
-      Alert.alert('No se pudo guardar', err.message);
+      avisar('No se pudo guardar', err.message);
     } finally {
       setNotaGuardando(false);
     }
@@ -293,10 +294,11 @@ export default function DetallePartido() {
   }
 
   function confirmarAnulacion() {
-    Alert.alert('¿Anular este resultado?', 'Esto revierte el efecto que tuvo en el ranking. No se puede deshacer.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Anular', style: 'destructive', onPress: anular },
-    ]);
+    confirmarAccion('¿Anular este resultado?', 'Esto revierte el efecto que tuvo en el ranking. No se puede deshacer.', {
+      textoConfirmar: 'Anular',
+      destructivo: true,
+      onConfirmar: anular,
+    });
   }
 
   async function anular() {
@@ -313,13 +315,10 @@ export default function DetallePartido() {
   }
 
   function confirmarPromocion() {
-    Alert.alert(
+    confirmarAccion(
       '¿Promover este partido a oficial?',
       'Además del Ranking normal (que ya tiene), este resultado también se aplicará al Ranking Interno, con su propio cálculo de puntos. No se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Promover', onPress: promoverAOficial },
-      ],
+      { textoConfirmar: 'Promover', onConfirmar: promoverAOficial },
     );
   }
 
@@ -425,7 +424,7 @@ export default function DetallePartido() {
       setAnalisisEditando(null);
       await cargar();
     } catch (err) {
-      Alert.alert('No se pudo guardar', err.message);
+      avisar('No se pudo guardar', err.message);
     } finally {
       setAnalisisGuardando(false);
     }
