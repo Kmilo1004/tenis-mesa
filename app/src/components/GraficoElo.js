@@ -8,11 +8,16 @@ const RELLENO = 10;
 
 // Línea de evolución del ELO a partir del historial de ranking (ver GET /usuarios/:id/historial-ranking).
 // `puntos` es un arreglo de { fecha, elo } en orden cronológico ascendente.
-export default function GraficoElo({ puntos, color = colores.acento }) {
+export default function GraficoElo({
+  puntos,
+  color = colores.acento,
+  mensajeVacio = 'Juega más partidos para ver cómo cambia tu ranking en el tiempo',
+  sufijoDelta = 'desde tu partido anterior',
+}) {
   if (puntos.length < 2) {
     return (
       <View style={estilos.vacio}>
-        <Text style={estilos.vacioTexto}>Juega más partidos para ver cómo cambia tu ranking en el tiempo</Text>
+        <Text style={estilos.vacioTexto}>{mensajeVacio}</Text>
       </View>
     );
   }
@@ -41,7 +46,7 @@ export default function GraficoElo({ puntos, color = colores.acento }) {
         {delta !== 0 && (
           <Text style={[estilos.delta, { color: delta > 0 ? colores.exito : colores.error }]}>
             {delta > 0 ? '▲' : '▼'}
-            {Math.abs(delta)} desde tu partido anterior
+            {Math.abs(delta)} {sufijoDelta}
           </Text>
         )}
       </View>
