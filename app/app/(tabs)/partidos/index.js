@@ -175,19 +175,28 @@ function MenuNuevoPartido() {
   // 0, y quedaba un rastro de sombra "flotando" sobre el botón + una vez terminaba la animación.
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const progreso = useRef(new Animated.Value(0)).current;
+  // Se necesita además de `abierto` (estado, para pintar) porque al tocar varias veces muy rápido
+  // el callback de una animación de cierre interrumpida por una de apertura podía llegar tarde y
+  // desmontar las píldoras aunque ya se hubiera vuelto a abrir — con la ref siempre se sabe cuál
+  // fue la ÚLTIMA intención real, sin depender del orden en que terminen las animaciones.
+  const abiertoRef = useRef(false);
 
   function cerrar() {
+    abiertoRef.current = false;
     setAbierto(false);
-    Animated.spring(progreso, { toValue: 0, useNativeDriver: true, speed: 18, bounciness: 8 }).start(() => {
-      setMostrarOpciones(false);
+    Animated.spring(progreso, { toValue: 0, useNativeDriver: true, speed: 18, bounciness: 8 }).start(({ finished }) => {
+      if (finished && !abiertoRef.current) {
+        setMostrarOpciones(false);
+      }
     });
   }
 
   function alternar() {
-    if (abierto) {
+    if (abiertoRef.current) {
       cerrar();
       return;
     }
+    abiertoRef.current = true;
     setMostrarOpciones(true);
     setAbierto(true);
     Animated.spring(progreso, { toValue: 1, useNativeDriver: true, speed: 18, bounciness: 8 }).start();
