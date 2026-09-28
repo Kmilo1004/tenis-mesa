@@ -44,7 +44,7 @@ export default function EditarTorneo() {
       (async () => {
         setCargando(true);
         try {
-          const torneo = await apiFetch(`/torneos/${torneoId}`);
+          const torneo = await apiFetch(`/torneos/${torneoId}`, { token });
           if (!vigente) return;
           setNombre(torneo.nombre);
           setTipo(torneo.tipo);

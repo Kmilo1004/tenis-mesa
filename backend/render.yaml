@@ -6,11 +6,23 @@ services:
     rootDir: backend
     buildCommand: npm install && npx prisma migrate deploy
     startCommand: npm start
+    healthCheckPath: /api/v1/health
     envVars:
+      # NODE_ENV=production es lo que hace que CORS deje de aceptar localhost. No quitar.
+      - key: NODE_ENV
+        value: production
       - key: DATABASE_URL
+        sync: false
+      # Conexión directa (sin el pooler de Neon): la exige `prisma migrate deploy` para su
+      # advisory lock. Estaba puesta a mano en el panel y faltaba acá.
+      - key: DIRECT_URL
         sync: false
       - key: JWT_SECRET
         sync: false
+      # Orígenes web autorizados, separados por coma. Si cambia la URL de la versión web, se
+      # actualiza acá.
+      - key: ORIGENES_PERMITIDOS
+        value: https://kmilo1004.github.io
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: PORT

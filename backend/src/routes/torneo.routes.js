@@ -129,7 +129,7 @@ router.post('/torneos', verificarToken, async (req, res, next) => {
 });
 
 // GET /torneos?tipo=&alcance=&estado=
-router.get('/torneos', async (req, res, next) => {
+router.get('/torneos', verificarToken, async (req, res, next) => {
   try {
     const { tipo, alcance, estado } = req.query;
 
@@ -151,7 +151,7 @@ router.get('/torneos', async (req, res, next) => {
 });
 
 // GET /torneos/{id}
-router.get('/torneos/:id', async (req, res, next) => {
+router.get('/torneos/:id', verificarToken, async (req, res, next) => {
   try {
     let torneo = await prisma.torneo.findUnique({ where: { id: req.params.id } });
     if (!torneo) {
@@ -381,7 +381,7 @@ router.delete('/torneos/:id/inscripciones/me', verificarToken, async (req, res, 
 });
 
 // GET /torneos/{id}/inscripciones
-router.get('/torneos/:id/inscripciones', async (req, res, next) => {
+router.get('/torneos/:id/inscripciones', verificarToken, async (req, res, next) => {
   try {
     const torneo = await prisma.torneo.findUnique({ where: { id: req.params.id } });
     if (!torneo) {
@@ -525,7 +525,7 @@ router.post('/torneos/:id/cuadro/generar', verificarToken, requiereRol('administ
 });
 
 // GET /torneos/{id}/cuadro
-router.get('/torneos/:id/cuadro', async (req, res, next) => {
+router.get('/torneos/:id/cuadro', verificarToken, async (req, res, next) => {
   try {
     const torneo = await prisma.torneo.findUnique({ where: { id: req.params.id } });
     if (!torneo) {
@@ -663,7 +663,7 @@ router.post('/torneos/:id/grupos/generar', verificarToken, requiereRol('administ
 });
 
 // GET /torneos/{id}/grupos
-router.get('/torneos/:id/grupos', async (req, res, next) => {
+router.get('/torneos/:id/grupos', verificarToken, async (req, res, next) => {
   try {
     const grupos = await prisma.grupo.findMany({
       where: { torneoId: req.params.id },
@@ -799,7 +799,7 @@ router.post('/torneos/:id/grupos/publicar', verificarToken, requiereRol('adminis
 });
 
 // GET /torneos/{id}/grupos/{grupoId}/tabla — RF-11e
-router.get('/torneos/:id/grupos/:grupoId/tabla', async (req, res, next) => {
+router.get('/torneos/:id/grupos/:grupoId/tabla', verificarToken, async (req, res, next) => {
   try {
     const grupo = await prisma.grupo.findFirst({ where: { id: req.params.grupoId, torneoId: req.params.id } });
     if (!grupo) {
@@ -815,7 +815,7 @@ router.get('/torneos/:id/grupos/:grupoId/tabla', async (req, res, next) => {
 
 // GET /torneos/{id}/grupos/{grupoId}/partidos — partidos de un grupo (round-robin), para poder
 // navegar a cada uno y cargar/aprobar su resultado (RF-11c). Igual que /cuadro, pero por grupo.
-router.get('/torneos/:id/grupos/:grupoId/partidos', async (req, res, next) => {
+router.get('/torneos/:id/grupos/:grupoId/partidos', verificarToken, async (req, res, next) => {
   try {
     const grupo = await prisma.grupo.findFirst({ where: { id: req.params.grupoId, torneoId: req.params.id } });
     if (!grupo) {

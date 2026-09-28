@@ -16,8 +16,9 @@ router.get('/health', async (req, res) => {
     estado.baseDeDatos = 'ok';
     return res.status(200).json(estado);
   } catch (error) {
+    // El mensaje de Prisma incluye el host y la cadena de conexión: queda solo en el log.
+    console.error('Health check: la base de datos no respondió —', error);
     estado.baseDeDatos = 'error';
-    estado.detalle = error.message;
     return res.status(503).json(estado);
   }
 });

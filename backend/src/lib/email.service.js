@@ -15,9 +15,10 @@ async function enviarCorreoRecuperacion(correo, nombre, token) {
   const enlace = `${URL_WEB}/restablecer?token=${token}`;
 
   if (!process.env.RESEND_API_KEY) {
-    // Sin credencial de correo configurada, se deja el enlace en el log del servidor para poder
-    // seguir probando/operando manualmente (igual que la app se queda sin push sin FCM).
-    console.error(`RESEND_API_KEY no configurada: no se pudo enviar el correo a ${correo}. Enlace: ${enlace}`);
+    // El enlace lleva el token de recuperación: escribirlo en el log convierte a cualquiera con
+    // acceso al panel de Render (o a un agregador de logs) en dueño de cualquier cuenta. Se
+    // registra solo que falló el envío, nunca el token.
+    console.error('RESEND_API_KEY no configurada: no se pudo enviar el correo de recuperación.');
     return;
   }
 

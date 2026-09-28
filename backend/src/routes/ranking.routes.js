@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const { verificarToken } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -49,8 +50,9 @@ async function obtenerRanking(req, campoElo) {
   return { ranking, page, pageSize, total };
 }
 
-// GET /ranking/no-oficial
-router.get('/ranking/no-oficial', async (req, res, next) => {
+// GET /ranking/no-oficial — requiere sesión: la tabla lleva nombre y nivel de cada miembro del
+// club (dato personal), no puede quedar expuesta a internet sin autenticar.
+router.get('/ranking/no-oficial', verificarToken, async (req, res, next) => {
   try {
     return res.status(200).json(await obtenerRanking(req, 'eloNoOficial'));
   } catch (error) {
@@ -59,7 +61,7 @@ router.get('/ranking/no-oficial', async (req, res, next) => {
 });
 
 // GET /ranking/oficial
-router.get('/ranking/oficial', async (req, res, next) => {
+router.get('/ranking/oficial', verificarToken, async (req, res, next) => {
   try {
     return res.status(200).json(await obtenerRanking(req, 'eloOficial'));
   } catch (error) {

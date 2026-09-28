@@ -57,19 +57,21 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
   const publicado = ['en_curso', 'finalizado'].includes(torneo.estado);
 
   const cargar = useCallback(async () => {
+    // Sin token todavía (la sesión aún está cargando): pedir ahora daría un 401 seguro.
+    if (!token) return;
     setCargando(true);
     try {
-      const datosGrupos = await apiFetch(`/torneos/${torneoId}/grupos`);
+      const datosGrupos = await apiFetch(`/torneos/${torneoId}/grupos`, { token });
       setGrupos(datosGrupos);
 
       if (publicado && datosGrupos.length > 0) {
         const entradas = await Promise.all(
-          datosGrupos.map(async (g) => [g.id, (await apiFetch(`/torneos/${torneoId}/grupos/${g.id}/tabla`)).tabla]),
+          datosGrupos.map(async (g) => [g.id, (await apiFetch(`/torneos/${torneoId}/grupos/${g.id}/tabla`, { token })).tabla]),
         );
         setTablas(Object.fromEntries(entradas));
 
         const entradasPartidos = await Promise.all(
-          datosGrupos.map(async (g) => [g.id, (await apiFetch(`/torneos/${torneoId}/grupos/${g.id}/partidos`)).partidos]),
+          datosGrupos.map(async (g) => [g.id, (await apiFetch(`/torneos/${torneoId}/grupos/${g.id}/partidos`, { token })).partidos]),
         );
         setPartidosPorGrupo(Object.fromEntries(entradasPartidos));
       }
@@ -78,7 +80,7 @@ export default function SeccionGrupos({ torneoId, torneo, inscritos, esAdmin, to
     } finally {
       setCargando(false);
     }
-  }, [torneoId, publicado]);
+  }, [torneoId, publicado, token]);
 
   useEffect(() => {
     cargar();

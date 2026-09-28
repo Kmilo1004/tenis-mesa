@@ -30,12 +30,14 @@ export default function Ranking() {
   }, [token]);
 
   const cargar = useCallback(async () => {
+    // Sin token todavía (la sesión aún está cargando): pedir ahora daría un 401 seguro.
+    if (!token) return;
     setCargando(true);
     setError(null);
     const claveCache = `ranking_${tipo}`;
     try {
       const ruta = tipo === 'oficial' ? '/ranking/oficial' : '/ranking/no-oficial';
-      const datos = await apiFetch(ruta);
+      const datos = await apiFetch(ruta, { token });
       setRanking(datos.ranking);
       setSinConexion(false);
       guardarCache(claveCache, datos.ranking);
@@ -50,7 +52,7 @@ export default function Ranking() {
     } finally {
       setCargando(false);
     }
-  }, [tipo]);
+  }, [tipo, token]);
 
   useFocusEffect(
     useCallback(() => {

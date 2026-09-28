@@ -17,7 +17,7 @@ const ETIQUETAS_ESTADO = {
 };
 
 export default function ListaTorneos() {
-  const { usuario } = useAuth();
+  const { usuario, token } = useAuth();
   // Cualquier usuario logueado puede crear un torneo (flash y abierto); solo el admin puede
   // además elegir que sea oficial o interno — eso se restringe en la propia pantalla de creación.
   const puedeCrear = Boolean(usuario);
@@ -28,10 +28,12 @@ export default function ListaTorneos() {
   const [sinConexion, setSinConexion] = useState(false);
 
   const cargar = useCallback(async () => {
+    // Sin token todavía (la sesión aún está cargando): pedir ahora daría un 401 seguro.
+    if (!token) return;
     setCargando(true);
     setError(null);
     try {
-      const datos = await apiFetch('/torneos');
+      const datos = await apiFetch('/torneos', { token });
       setTorneos(datos);
       setSinConexion(false);
       guardarCache('torneos', datos);
@@ -46,7 +48,7 @@ export default function ListaTorneos() {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {

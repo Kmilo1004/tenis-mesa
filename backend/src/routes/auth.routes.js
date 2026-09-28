@@ -15,10 +15,19 @@ const TIPOS_VALIDOS = ['interno', 'externo'];
 // separa rankings ni torneos): agregar una nueva institución es simplemente sumarla aquí.
 const INSTITUCIONES_VALIDAS = ['Universidad del Magdalena', 'Independiente'];
 
+// Sin el valor por defecto, si JWT_EXPIRES_IN falta en el entorno `expiresIn` queda undefined y
+// jsonwebtoken emite tokens que NO vencen nunca.
 function generarToken(usuarioId) {
   return jwt.sign({ id: usuarioId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
+}
+
+// Los correos se guardan y se comparan siempre normalizados: sin esto, "Ana@x.com" y "ana@x.com"
+// pasan la validación de único como dos cuentas distintas, y quien se registró con mayúsculas no
+// puede iniciar sesión escribiéndolo en minúsculas.
+function normalizarCorreo(correo) {
+  return typeof correo === 'string' ? correo.trim().toLowerCase() : correo;
 }
 
 function excluirPasswordHash(usuario) {
@@ -29,7 +38,8 @@ function excluirPasswordHash(usuario) {
 // POST /auth/registro
 router.post('/auth/registro', async (req, res, next) => {
   try {
-    const { nombre, correo, password, tipo, procedencia, institucion, programaFacultad, nivel } = req.body;
+    const { nombre, password, tipo, procedencia, institucion, programaFacultad, nivel } = req.body;
+    const correo = normalizarCorreo(req.body.correo);
 
     if (!nombre || !correo || !password || !tipo || !nivel) {
       return res.status(400).json({ error: 'nombre, correo, password, tipo y nivel son obligatorios' });
@@ -91,7 +101,8 @@ router.post('/auth/registro', async (req, res, next) => {
 // POST /auth/login
 router.post('/auth/login', async (req, res, next) => {
   try {
-    const { correo, password } = req.body;
+    const { password } = req.body;
+    const correo = normalizarCorreo(req.body.correo);
 
     if (!correo || !password) {
       return res.status(400).json({ error: 'correo y password son obligatorios' });
@@ -127,7 +138,7 @@ const UNA_HORA_MS = 60 * 60 * 1000;
 // correos están registrados.
 router.post('/auth/olvide-password', async (req, res, next) => {
   try {
-    const { correo } = req.body;
+    const correo = normalizarCorreo(req.body.correo);
     if (!correo) {
       return res.status(400).json({ error: 'correo es obligatorio' });
     }

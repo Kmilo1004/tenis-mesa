@@ -50,13 +50,15 @@ export default function DetalleTorneo() {
   const [inscritosAbiertos, setInscritosAbiertos] = useState(false);
 
   const cargar = useCallback(async () => {
+    // Sin token todavía (la sesión aún está cargando): pedir ahora daría un 401 seguro.
+    if (!token) return;
     setCargando(true);
     setError(null);
     try {
       const [datosTorneo, datosInscritos, datosCuadro] = await Promise.all([
-        apiFetch(`/torneos/${id}`),
-        apiFetch(`/torneos/${id}/inscripciones`),
-        apiFetch(`/torneos/${id}/cuadro`),
+        apiFetch(`/torneos/${id}`, { token }),
+        apiFetch(`/torneos/${id}/inscripciones`, { token }),
+        apiFetch(`/torneos/${id}/cuadro`, { token }),
       ]);
       setTorneo(datosTorneo);
       setInscritos(datosInscritos);
@@ -66,7 +68,7 @@ export default function DetalleTorneo() {
     } finally {
       setCargando(false);
     }
-  }, [id]);
+  }, [id, token]);
 
   useFocusEffect(
     useCallback(() => {
