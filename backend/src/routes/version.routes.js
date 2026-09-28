@@ -10,7 +10,7 @@ const router = express.Router();
 // versión es mayor que la instalada, así que hay que subirla en cada build publicado.
 const ULTIMA_VERSION = {
   version: '2.7',
-  url: 'https://expo.dev/artifacts/eas/_nR8WpErmL0hutgYvcfxIIdRo3k18e82BYziVfltLRk.apk',
+  url: 'https://expo.dev/artifacts/eas/1Kk51CQWv_emOb-UkNyGmeFrFgJa1GOTGB4RS8WxfIE.apk',
   // Los detalles de un parche de seguridad no se publican: describir qué se corrigió es un mapa
   // para quien todavía tenga una versión vieja instalada.
   notas: 'Parche de seguridad. Es necesario instalar esta actualización para que la app siga funcionando con normalidad.',
