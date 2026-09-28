@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "node scripts/proteger-migraciones.js && prisma migrate dev",
+    "prisma:reset": "node scripts/proteger-migraciones.js && prisma migrate reset",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
